@@ -1,0 +1,3338 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>タスク管理</title>
+  <style>
+    :root {
+      --text: #1a2433;
+      --muted: #58677a;
+      --line: #d5deea;
+      --bg: #edf2f9;
+      --card: #ffffff;
+      --card-soft: #f8fbff;
+      --accent: #0b766e;
+      --focus: rgba(11, 118, 110, 0.22);
+      --danger: #b42318;
+      --warn: #d97706;
+      --safe: #2f855a;
+      --radius: 18px;
+      --shadow: 0 14px 38px rgba(11, 27, 49, 0.08);
+      --shadow-strong: 0 20px 54px rgba(11, 27, 49, 0.14);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: "BIZ UDPGothic", "Hiragino Sans", "Yu Gothic UI", sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at 6% 6%, rgba(11, 118, 110, 0.14), transparent 34%),
+        radial-gradient(circle at 94% 4%, rgba(217, 119, 6, 0.12), transparent 30%),
+        radial-gradient(circle at 46% 92%, rgba(59, 130, 246, 0.08), transparent 34%),
+        var(--bg);
+    }
+
+    .shell {
+      width: min(1360px, calc(100% - 28px));
+      margin: 24px auto 36px;
+      display: grid;
+      gap: 16px;
+    }
+
+    .hero {
+      border-radius: 26px;
+      padding: 24px 24px;
+      color: #f8fafc;
+      background: linear-gradient(138deg, #1a3557 0%, #0b766e 68%, #0e5d95 100%);
+      box-shadow: var(--shadow-strong);
+      display: grid;
+      gap: 8px;
+      position: relative;
+      overflow: hidden;
+      isolation: isolate;
+    }
+
+    .hero::before,
+    .hero::after {
+      content: "";
+      position: absolute;
+      border-radius: 999px;
+      pointer-events: none;
+      z-index: -1;
+    }
+
+    .hero::before {
+      width: 320px;
+      height: 320px;
+      right: -96px;
+      top: -140px;
+      background: radial-gradient(circle, rgba(255, 255, 255, 0.24), transparent 66%);
+    }
+
+    .hero::after {
+      width: 260px;
+      height: 260px;
+      left: -120px;
+      bottom: -150px;
+      background: radial-gradient(circle, rgba(255, 255, 255, 0.16), transparent 68%);
+    }
+
+    .hero-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .hero h1 {
+      margin: 0;
+      font-size: clamp(1.55rem, 1.4vw + 1rem, 2.15rem);
+      letter-spacing: 0.01em;
+    }
+
+    .hero p {
+      margin: 0;
+      color: rgba(248, 250, 252, 0.9);
+      font-size: 0.96rem;
+      line-height: 1.55;
+    }
+
+    .nav-link {
+      text-decoration: none;
+      color: #14345a;
+      background: rgba(255, 255, 255, 0.92);
+      border: 1px solid rgba(255, 255, 255, 0.5);
+      border-radius: 999px;
+      padding: 9px 14px;
+      font-size: 0.84rem;
+      font-weight: 700;
+      box-shadow: 0 8px 22px rgba(10, 20, 42, 0.14);
+      transition: transform 0.15s, box-shadow 0.15s, background 0.15s;
+    }
+
+    .nav-link:hover {
+      transform: translateY(-1px);
+      background: #ffffff;
+      box-shadow: 0 10px 24px rgba(10, 20, 42, 0.2);
+    }
+
+    .section {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      backdrop-filter: none;
+    }
+
+    .alert-banner {
+      border: 1px solid rgba(29, 78, 216, 0.22);
+      border-radius: 18px;
+      background: linear-gradient(135deg, #f2f7ff, #f4faff);
+      box-shadow: 0 14px 30px rgba(29, 78, 216, 0.08);
+    }
+
+    .alert-banner.overdue {
+      border-color: rgba(185, 28, 28, 0.34);
+      background: linear-gradient(135deg, #fff0ef, #fff5f2);
+      box-shadow: 0 18px 36px rgba(185, 28, 28, 0.14);
+    }
+
+    .alert-banner.overdue .alert-badge {
+      background: rgba(185, 28, 28, 0.18);
+      color: #8f1212;
+      border-color: rgba(185, 28, 28, 0.28);
+    }
+
+    .alert-banner[hidden] {
+      display: none;
+    }
+
+    .alert-banner .section-body {
+      padding: 16px 18px;
+    }
+
+    .alert-title-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .alert-badge {
+      display: inline-flex;
+      align-items: center;
+      border-radius: 999px;
+      padding: 6px 12px;
+      background: rgba(29, 78, 216, 0.12);
+      color: #1d4ed8;
+      border: 1px solid rgba(29, 78, 216, 0.18);
+      font-size: 0.82rem;
+      font-weight: 700;
+    }
+
+    .alert-list {
+      margin: 12px 0 0;
+      padding-left: 18px;
+      display: grid;
+      gap: 6px;
+      color: #23405f;
+      font-size: 0.88rem;
+    }
+
+    .section-body {
+      padding: 18px;
+    }
+
+    .section-title {
+      margin: 0;
+      font-size: 1.06rem;
+    }
+
+    .section-sub {
+      margin: 4px 0 0;
+      color: var(--muted);
+      font-size: 0.9rem;
+    }
+
+    .kpi-grid {
+      display: grid;
+      gap: 10px;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+    }
+
+    .kpi {
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 12px;
+      background: #ffffff;
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7);
+    }
+
+    .kpi-label {
+      color: var(--muted);
+      font-size: 0.83rem;
+    }
+
+    .kpi-value {
+      margin-top: 4px;
+      font-size: 1.6rem;
+      font-weight: 700;
+      color: #10263f;
+    }
+
+    .kpi-note {
+      margin-top: 4px;
+      font-size: 0.8rem;
+      color: var(--muted);
+    }
+
+    .main-grid {
+      display: grid;
+      gap: 18px;
+      grid-template-columns: 1.36fr 1.04fr;
+      align-items: start;
+    }
+
+    .lane-grid {
+      display: grid;
+      gap: 8px;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      margin-top: 10px;
+    }
+
+    .lane {
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 10px;
+      background: #ffffff;
+    }
+
+    .lane h3 {
+      margin: 0 0 8px;
+      font-size: 0.92rem;
+      color: var(--muted);
+    }
+
+    .lane-title {
+      display: inline-block;
+      padding: 6px 10px;
+      border-radius: 8px;
+      font-weight: 700;
+    }
+
+    .lane-title.lane-focus {
+      color: #7a2419;
+      background: linear-gradient(90deg, rgba(180,35,24,0.14), rgba(217,119,6,0.06));
+      border: 1px solid rgba(180,35,24,0.18);
+    }
+
+    .lane-title.lane-spare {
+      color: #0f5132;
+      background: linear-gradient(90deg, rgba(47,133,90,0.12), rgba(104,211,145,0.04));
+      border: 1px solid rgba(47,133,90,0.14);
+    }
+
+    .lane ul {
+      margin: 0;
+      padding-left: 16px;
+      display: grid;
+      gap: 4px;
+      font-size: 0.88rem;
+    }
+
+    .workload-list {
+      margin-top: 10px;
+      display: grid;
+      gap: 8px;
+      max-height: 640px;
+      overflow-y: auto;
+      padding-right: 4px;
+    }
+
+    .workload-item {
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 10px;
+      background: #ffffff;
+    }
+
+    .row-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .name {
+      font-weight: 700;
+      font-size: 0.95rem;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      border-radius: 999px;
+      padding: 5px 10px;
+      font-size: 0.78rem;
+      border: 1px solid rgba(15,23,42,0.06);
+      font-weight: 700;
+      color: #082031;
+      box-shadow: 0 4px 10px rgba(10,20,30,0.04);
+    }
+
+    .range-high .badge {
+      color: #7a2419;
+      background: linear-gradient(90deg, rgba(180,35,24,0.28), rgba(217,119,6,0.16));
+      border-color: rgba(180, 35, 24, 0.36);
+      box-shadow: 0 6px 18px rgba(180,35,24,0.06);
+    }
+
+    .range-medium .badge {
+      color: #8a5206;
+      background: linear-gradient(90deg, rgba(217,119,6,0.28), rgba(249,158,11,0.16));
+      border-color: rgba(217, 119, 6, 0.34);
+      box-shadow: 0 6px 18px rgba(217,119,6,0.05);
+    }
+
+    .range-low .badge {
+      color: #0f5132;
+      background: linear-gradient(90deg, rgba(47,133,90,0.28), rgba(104,211,145,0.16));
+      border-color: rgba(47, 133, 90, 0.34);
+      box-shadow: 0 6px 18px rgba(47,133,90,0.05);
+    }
+
+    .meta {
+      margin-top: 6px;
+      color: var(--muted);
+      font-size: 0.82rem;
+    }
+
+    .bar-wrap {
+      margin-top: 8px;
+      height: 9px;
+      border-radius: 999px;
+      background: #e8edf4;
+      overflow: hidden;
+    }
+
+    .bar-fill {
+      height: 100%;
+      border-radius: inherit;
+      background: linear-gradient(90deg, #2f855a, #68d391);
+    }
+
+    .range-medium .bar-fill {
+      background: linear-gradient(90deg, #d97706, #f59e0b);
+    }
+
+    .range-high .bar-fill {
+      background: linear-gradient(90deg, #b42318, #d97706);
+    }
+
+    .follow-section .section-body {
+      padding: 20px;
+    }
+
+    .follow-stack {
+      margin-top: 14px;
+      display: grid;
+      gap: 14px;
+    }
+
+    .focus-card,
+    .support-card,
+    .insight-card {
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 14px;
+      background: #ffffff;
+      margin-top: 0;
+    }
+
+    /* 強めの色付け: フォロー判断内カード（単色で色を濃く） */
+    .focus-card {
+      background: #FFE9D2; /* 単色：暖色系、濃め */
+      border-left: 6px solid #D97706; /* 濃いオレンジ */
+      border: 1px solid #D97706; /* 外枠をはっきりさせる */
+      box-shadow: 0 10px 22px rgba(15, 23, 42, 0.06);
+    }
+
+    .support-card {
+      background: #E6FFF0; /* 単色：緑系、濃め */
+      border-left: 6px solid #2F855A; /* 濃い緑 */
+      border: 1px solid #2F855A; /* 外枠をはっきりさせる */
+      box-shadow: 0 10px 22px rgba(15, 23, 42, 0.06);
+    }
+
+    .insight-card {
+      background: #FFECEC; /* 単色：赤系、濃め */
+      border-left: 6px solid #B42318; /* 濃い赤 */
+      border: 1px solid #B42318; /* 外枠をはっきりさせる */
+      box-shadow: 0 10px 22px rgba(15, 23, 42, 0.06);
+    }
+
+    .focus-card h3,
+    .support-card h3,
+    .insight-card h3 {
+      margin: 0 0 10px;
+      font-size: 0.95rem;
+    }
+
+    .focus-list,
+    .support-list,
+    .insight-list {
+      margin: 0;
+      padding-left: 0;
+      list-style: none;
+      display: grid;
+      gap: 8px;
+      font-size: 0.88rem;
+    }
+
+    .focus-list li {
+      padding: 10px 12px;
+      border: 1px solid #F0A54A; /* はっきりしたオレンジ系境界 */
+      border-radius: 12px;
+      background: #FFEFD9; /* 単色（オレンジ系） */
+      line-height: 1.55;
+    }
+
+    .support-list li {
+      padding: 10px 12px;
+      border: 1px solid #3AA16B; /* はっきりした緑系境界 */
+      border-radius: 12px;
+      background: #E9FFF1; /* 単色（緑系） */
+      line-height: 1.55;
+    }
+
+    .insight-list li {
+      padding: 10px 12px;
+      border: 1px solid #C84B45; /* はっきりした赤系境界 */
+      border-radius: 12px;
+      background: #FFECEC; /* 単色（赤系） */
+      line-height: 1.55;
+    }
+
+    .alert-list li {
+      padding: 10px 12px;
+      border: 1px solid rgba(180, 35, 24, 0.12);
+      border-radius: 12px;
+      background: #ffffff;
+      line-height: 1.55;
+    }
+
+    .insight-list li {
+      cursor: pointer;
+      transition: transform 0.12s, box-shadow 0.15s, border-color 0.15s;
+    }
+
+    .insight-list li:hover {
+      transform: translateY(-1px);
+      border-color: rgba(29, 78, 216, 0.28);
+      box-shadow: 0 8px 18px rgba(29, 78, 216, 0.08);
+    }
+
+    .insight-list li:focus-visible {
+      outline: none;
+      box-shadow: 0 0 0 4px rgba(29, 78, 216, 0.18);
+    }
+
+    .filter-row {
+      margin-top: 10px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .list-toolbar {
+      margin-top: 10px;
+      display: grid;
+      grid-template-columns: 1.2fr 1fr;
+      gap: 10px;
+      align-items: start;
+    }
+
+    .filter-panel {
+      display: grid;
+      gap: 0;
+    }
+
+    .legend-box {
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: linear-gradient(180deg, #ffffff, #f7fbff);
+      padding: 10px;
+      display: grid;
+      gap: 8px;
+    }
+
+    .legend-title {
+      margin: 0;
+      font-size: 0.9rem;
+    }
+
+    .legend-items {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    .lane-more {
+      margin-top: 8px;
+      border: 1px solid #b8c7db;
+      border-radius: 999px;
+      padding: 6px 10px;
+      background: #ffffff;
+      color: #19324f;
+      font: inherit;
+      font-size: 0.8rem;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .lane-more[hidden] {
+      display: none;
+    }
+
+    .manual-form {
+      margin-top: 12px;
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: linear-gradient(180deg, #ffffff, #f7fbff);
+      display: grid;
+      gap: 10px;
+    }
+
+    .manual-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 8px;
+    }
+
+    .manual-grid-2 {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px;
+    }
+
+    .manual-label {
+      display: grid;
+      gap: 5px;
+      color: var(--muted);
+      font-size: 0.84rem;
+    }
+
+    .action-btn {
+      border: 0;
+      border-radius: 999px;
+      padding: 9px 14px;
+      background: linear-gradient(135deg, var(--accent), #0b5f58);
+      color: #ffffff;
+      font: inherit;
+      cursor: pointer;
+      width: fit-content;
+    }
+
+    .manual-note {
+      margin: 0;
+      color: var(--muted);
+      font-size: 0.82rem;
+    }
+
+    .manual-open-row {
+      margin-top: 12px;
+      display: flex;
+      justify-content: flex-start;
+    }
+
+    .secondary-btn {
+      border: 1px solid #b8c7db;
+      border-radius: 999px;
+      padding: 9px 14px;
+      background: #ffffff;
+      color: #19324f;
+      font: inherit;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(15, 23, 42, 0.45);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 200;
+      padding: 14px;
+    }
+
+    #workerTaskModal {
+      z-index: 205;
+    }
+
+    #detailModal {
+      z-index: 210;
+    }
+
+    .modal-overlay.open {
+      display: flex;
+    }
+
+    .modal-card {
+      width: min(760px, 100%);
+      max-height: calc(100vh - 28px);
+      overflow-y: auto;
+      background: #ffffff;
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      box-shadow: 0 18px 40px rgba(15, 23, 42, 0.24);
+      padding: 14px;
+      display: grid;
+      gap: 10px;
+    }
+
+    .modal-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+
+    .modal-close {
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: #ffffff;
+      color: var(--text);
+      padding: 6px 11px;
+      font: inherit;
+      cursor: pointer;
+    }
+
+    .task-head {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .new-chip {
+      display: inline-flex;
+      align-items: center;
+      border-radius: 999px;
+      padding: 3px 10px;
+      font-size: 0.74rem;
+      color: #7a2419;
+      background: linear-gradient(90deg, rgba(180,35,24,0.22), rgba(255,240,238,0.06));
+      border: 1px solid rgba(180, 35, 24, 0.3);
+      font-weight: 700;
+      letter-spacing: 0.02em;
+      box-shadow: 0 6px 16px rgba(180,35,24,0.04);
+    }
+
+    tr.new-row td {
+      background: rgba(180, 35, 24, 0.05);
+    }
+
+    .task-tag {
+      display: inline-flex;
+      align-items: center;
+      border-radius: 999px;
+      padding: 3px 10px;
+      font-size: 0.76rem;
+      border: 1px solid transparent;
+      white-space: nowrap;
+    }
+
+    .task-tag-buhin {
+      color: #7a2419;
+      background: linear-gradient(90deg, rgba(180,35,24,0.22), rgba(255,240,238,0.06));
+      border-color: rgba(180, 35, 24, 0.34);
+    }
+
+    .task-tag-gms {
+      color: #7c4a03;
+      background: linear-gradient(90deg, rgba(217,119,6,0.22), rgba(255,247,236,0.06));
+      border-color: rgba(217, 119, 6, 0.34);
+    }
+
+    .task-tag-quality {
+      color: #065f46;
+      background: linear-gradient(90deg, rgba(16,185,129,0.22), rgba(240,255,247,0.06));
+      border-color: rgba(16, 185, 129, 0.34);
+    }
+
+    .task-tag-press {
+      color: #334155;
+      background: linear-gradient(90deg, rgba(100,116,139,0.18), rgba(245,247,250,0.04));
+      border-color: rgba(100, 116, 139, 0.34);
+    }
+
+    .task-tag-underground {
+      color: #1d4ed8;
+      background: linear-gradient(90deg, rgba(37,99,235,0.22), rgba(239,246,255,0.06));
+      border-color: rgba(37, 99, 235, 0.34);
+    }
+
+    .task-tag-backoffice {
+      color: #0f766e;
+      background: linear-gradient(90deg, rgba(15,118,110,0.22), rgba(240,255,252,0.06));
+      border-color: rgba(15, 118, 110, 0.34);
+    }
+
+    .task-tag-salesforce {
+      color: #4338ca;
+      background: linear-gradient(90deg, rgba(99,102,241,0.22), rgba(244,245,255,0.06));
+      border-color: rgba(99, 102, 241, 0.34);
+    }
+
+    .task-tag-personal {
+      color: #0f5132;
+      background: linear-gradient(90deg, rgba(34,197,94,0.22), rgba(240,255,244,0.06));
+      border-color: rgba(34, 197, 94, 0.34);
+    }
+
+    .task-tag-other {
+      color: #475569;
+      background: linear-gradient(90deg, rgba(148,163,184,0.22), rgba(249,250,252,0.06));
+      border-color: rgba(148, 163, 184, 0.34);
+    }
+
+    input,
+    select {
+      font: inherit;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: #ffffff;
+      padding: 8px 10px;
+      color: var(--text);
+      transition: border-color 0.15s, box-shadow 0.15s;
+    }
+
+    input:focus,
+    select:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 4px var(--focus);
+    }
+
+    .table-wrap {
+      margin-top: 10px;
+      overflow-x: auto;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      background: #ffffff;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.88rem;
+    }
+
+    th,
+    td {
+      padding: 9px 8px;
+      border-bottom: 1px solid var(--line);
+      text-align: left;
+      vertical-align: top;
+    }
+
+    th {
+      color: var(--muted);
+      white-space: nowrap;
+      font-weight: 600;
+      background: #f3f7fc;
+    }
+
+    tbody tr:hover td {
+      background: rgba(29, 78, 216, 0.05);
+    }
+
+    .worker-task-row,
+    .alert-list [data-open-detail] {
+      cursor: pointer;
+    }
+
+    .worker-task-row:focus-visible td,
+    .alert-list [data-open-detail]:focus-visible {
+      outline: none;
+      box-shadow: inset 0 0 0 2px rgba(29, 78, 216, 0.22);
+    }
+
+    .assignee-list {
+      margin: 0;
+      padding-left: 16px;
+      min-width: 170px;
+      color: var(--muted);
+      font-size: 0.84rem;
+      line-height: 1.45;
+      display: grid;
+      gap: 2px;
+    }
+
+    .assignee-more {
+      font-weight: 600;
+      color: #334155;
+    }
+
+    .detail-trigger {
+      border: 1px solid #1d4ed8;
+      border-radius: 999px;
+      padding: 6px 12px;
+      background: #1d4ed8;
+      color: #ffffff;
+      font: inherit;
+      font-size: 0.82rem;
+      font-weight: 700;
+      cursor: pointer;
+      box-shadow: 0 4px 12px rgba(29, 78, 216, 0.2);
+      transition: background 0.15s, border-color 0.15s, box-shadow 0.15s, transform 0.12s;
+    }
+
+    .detail-trigger:hover {
+      background: #1e40af;
+      border-color: #1e40af;
+      box-shadow: 0 6px 16px rgba(30, 64, 175, 0.28);
+      transform: translateY(-1px);
+    }
+
+    .detail-trigger:focus-visible {
+      outline: none;
+      box-shadow: 0 0 0 4px rgba(29, 78, 216, 0.28);
+    }
+
+    .row-save-btn {
+      border: 1px solid #1e3a8a;
+      border-radius: 999px;
+      padding: 6px 12px;
+      background: #1e3a8a;
+      color: #ffffff;
+      font: inherit;
+      font-size: 0.82rem;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+
+    .row-save-btn:hover {
+      background: #1e40af;
+      border-color: #1e40af;
+    }
+
+    .workload-item {
+      cursor: pointer;
+      transition: border-color 0.15s, box-shadow 0.15s, transform 0.12s;
+    }
+
+    .workload-item:hover {
+      border-color: rgba(15, 118, 110, 0.55);
+      box-shadow: 0 8px 18px rgba(15, 23, 42, 0.12);
+      transform: translateY(-1px);
+    }
+
+    .workload-item:focus-visible {
+      outline: none;
+      box-shadow: 0 0 0 4px var(--focus);
+    }
+
+    .detail-card {
+      width: min(860px, 100%);
+      max-height: calc(100vh - 30px);
+      overflow-y: auto;
+      background: #ffffff;
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      box-shadow: 0 18px 40px rgba(15, 23, 42, 0.24);
+      padding: 14px;
+      display: grid;
+      gap: 12px;
+    }
+
+    .detail-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px;
+    }
+
+    .detail-item {
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 8px 10px;
+      background: linear-gradient(180deg, #ffffff, #f7fbff);
+      display: grid;
+      gap: 3px;
+      min-height: 64px;
+    }
+
+    .detail-label {
+      color: var(--muted);
+      font-size: 0.79rem;
+    }
+
+    .detail-value {
+      font-size: 0.9rem;
+      word-break: break-word;
+    }
+
+    .detail-block {
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 10px;
+      background: linear-gradient(180deg, #ffffff, #f7fbff);
+      display: grid;
+      gap: 8px;
+    }
+
+    .detail-text {
+      margin: 0;
+      font-size: 0.9rem;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+
+    .detail-edit-grid {
+      display: grid;
+      gap: 8px;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .attachment-item {
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 8px;
+      background: #ffffff;
+      display: grid;
+      gap: 6px;
+    }
+
+    .attachment-meta {
+      color: var(--muted);
+      font-size: 0.8rem;
+    }
+
+    .attachment-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    .attachment-btn {
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      padding: 6px 10px;
+      background: #ffffff;
+      color: var(--text);
+      font: inherit;
+      font-size: 0.8rem;
+      cursor: pointer;
+    }
+
+    .attachment-btn[disabled] {
+      opacity: 0.55;
+      cursor: not-allowed;
+    }
+
+    .worker-task-card {
+      width: min(980px, 100%);
+      max-height: calc(100vh - 30px);
+      overflow-y: auto;
+      background: #ffffff;
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      box-shadow: 0 18px 40px rgba(15, 23, 42, 0.24);
+      padding: 14px;
+      display: grid;
+      gap: 12px;
+    }
+
+    .worker-summary {
+      display: grid;
+      gap: 8px;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+
+    .worker-kpi {
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 8px 10px;
+      background: linear-gradient(180deg, #ffffff, #f7fbff);
+    }
+
+    .worker-kpi-label {
+      color: var(--muted);
+      font-size: 0.8rem;
+    }
+
+    .worker-kpi-value {
+      margin-top: 4px;
+      font-size: 1.05rem;
+      font-weight: 700;
+    }
+
+    .worker-task-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.86rem;
+    }
+
+    .worker-task-table th,
+    .worker-task-table td {
+      padding: 8px;
+      border-bottom: 1px solid var(--line);
+      text-align: left;
+      vertical-align: top;
+    }
+
+    .empty {
+      padding: 10px;
+      border: 1px dashed var(--line);
+      border-radius: 12px;
+      color: var(--muted);
+      text-align: center;
+      background: linear-gradient(180deg, #ffffff, #f7fbff);
+    }
+
+    @media (max-width: 1120px) {
+      .kpi-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .main-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .list-toolbar {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 700px) {
+      .kpi-grid,
+      .lane-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .manual-grid,
+      .manual-grid-2 {
+        grid-template-columns: 1fr;
+      }
+
+      .hero-top {
+        align-items: flex-start;
+      }
+
+      .manual-open-row {
+        justify-content: stretch;
+      }
+
+      .manual-open-row .action-btn {
+        width: 100%;
+      }
+
+      .detail-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .detail-edit-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .worker-summary {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+    /* --- 視認性向上: 白基調のまま境界をわかりやすくするアクセント --- */
+    .section-title {
+      display: inline-block;
+      padding: 8px 12px;
+      background: rgba(11, 118, 110, 0.14);
+      border: 1px solid rgba(11, 118, 110, 0.12);
+      border-radius: 12px;
+      color: #0b2b2a;
+      font-weight: 800;
+      box-shadow: 0 6px 18px rgba(11,118,110,0.06);
+      margin-bottom: 8px;
+    }
+
+    .section {
+      border-left: 6px solid rgba(11, 118, 110, 0.03);
+    }
+
+    /* 未割当アラートの左フチを強調（背景と同化しないように） */
+    #unassignedAlert {
+      border-left-color: rgba(99, 102, 241, 0.16);
+      box-shadow: 0 8px 20px rgba(99,102,241,0.03);
+    }
+
+    .lane {
+      border-left: 4px solid rgba(148, 163, 184, 0.04);
+    }
+
+    .workload-item {
+      position: relative;
+      padding-left: 16px;
+      background: linear-gradient(180deg, #ffffff, #fbfdff);
+    }
+
+    .workload-item::before {
+      content: "";
+      position: absolute;
+      left: 8px;
+      top: 12px;
+      bottom: 12px;
+      width: 4px;
+      border-radius: 6px;
+      background: rgba(148, 163, 184, 0.08);
+      transition: background-color 0.12s, opacity 0.12s;
+    }
+
+    .range-high.workload-item::before {
+      background: #B42318; /* 単色：濃い赤 */
+    }
+
+    .range-medium.workload-item::before {
+      background: #D97706; /* 単色：濃いオレンジ */
+    }
+
+    .range-low.workload-item::before {
+      background: #2F855A; /* 単色：濃い緑 */
+    }
+
+    .workload-item .meta {
+      color: var(--muted);
+      font-size: 0.82rem;
+      margin-top: 8px;
+      padding-left: 6px;
+    }
+
+    /* スクロール部分の幅をわずかに詰めて余白を明確に */
+    .workload-list {
+      padding-right: 8px;
+    }
+
+    /* --- ブロックの色付け（白基調を維持しつつ判別しやすく） --- */
+    .kpi {
+      background: linear-gradient(180deg,#ffffff,#f3fbff);
+      border-left: 6px solid rgba(11,118,110,0.06);
+      padding-left: 14px;
+    }
+
+    .lane {
+      background: linear-gradient(180deg,#ffffff,#fbfdff);
+      border-left: 6px solid rgba(148,163,184,0.03);
+      padding-left: 12px;
+    }
+
+    .focus-card {
+      background: #FFE9D2;
+      border-left: 6px solid #D97706;
+      border: 1px solid #D97706;
+      padding-left: 12px;
+    }
+
+    .support-card {
+      background: #E6FFF0;
+      border-left: 6px solid #2F855A;
+      border: 1px solid #2F855A;
+      padding-left: 12px;
+    }
+
+    .insight-card {
+      background: #FFECEC;
+      border-left: 6px solid #B42318;
+      border: 1px solid #B42318;
+      padding-left: 12px;
+    }
+
+    .manual-form,
+    .legend-box,
+    .modal-card {
+      border-left: 6px solid rgba(99,102,241,0.04);
+      padding-left: 12px;
+    }
+  </style>
+  <script src="https://cdn.jsdelivr.net/npm/dexie@3.2.2/dist/dexie.min.js"></script>
+</head>
+<body>
+  <div class="shell">
+    <section class="hero">
+      <div class="hero-top">
+        <h1>タスク管理ダッシュボード</h1>
+        <div style="display:flex; gap:12px; align-items:center">
+          <button id="exportCsvBtn" class="nav-link" type="button">CSV出力</button>
+          <a class="nav-link" href="問合せフォーム.html">問合せフォームへ（検証用）</a>
+          <a class="nav-link" href="マスタ管理.html">マスタ管理へ</a>
+        </div>
+      </div>
+      <p>課内の過負荷と余力を即判断し、フォロー判断を早めるための画面です。負荷状況は使用率順に並びます。</p>
+    </section>
+
+    <section id="overdueAlert" class="section alert-banner overdue" hidden>
+      <div class="section-body">
+        <div class="alert-title-row">
+          <div>
+            <h2 class="section-title">期限超過案件があります</h2>
+            <p id="overdueAlertText" class="section-sub">期限を過ぎた未完了案件を表示しています。</p>
+          </div>
+          <span id="overdueAlertBadge" class="alert-badge">0件</span>
+        </div>
+        <ul id="overdueAlertList" class="alert-list"></ul>
+      </div>
+    </section>
+
+    <section id="unassignedAlert" class="section alert-banner" hidden>
+      <div class="section-body">
+        <div class="alert-title-row">
+          <div>
+            <h2 class="section-title">未割当案件があります</h2>
+            <p id="unassignedAlertText" class="section-sub">カテゴリ設定または担当割当を確認してください。</p>
+          </div>
+          <span id="unassignedAlertBadge" class="alert-badge">0件</span>
+        </div>
+        <ul id="unassignedAlertList" class="alert-list"></ul>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-body">
+        <div class="kpi-grid" id="kpiGrid"></div>
+      </div>
+    </section>
+
+    <section class="main-grid">
+      <article class="section">
+        <div class="section-body">
+          <h2 class="section-title">負荷状況マップ</h2>
+          <p class="section-sub">キャパ使用率の高い順。色は「集中: 赤 / やや集中: オレンジ / 余力: 緑」です。</p>
+
+          <div class="lane-grid">
+            <div class="lane">
+              <h3 class="lane-title lane-focus">集中レーン</h3>
+              <ul id="focusLane"></ul>
+            </div>
+            <div class="lane">
+              <h3 class="lane-title lane-spare">余力レーン</h3>
+              <ul id="spareLane"></ul>
+              <button id="spareLaneMoreBtn" type="button" class="lane-more" hidden>さらに表示</button>
+            </div>
+          </div>
+
+          <div class="workload-list" id="workloadList"></div>
+        </div>
+      </article>
+
+      <article class="section follow-section">
+        <div class="section-body">
+          <h2 class="section-title">フォロー判断</h2>
+          <p class="section-sub">集中している担当者と、支援候補を自動表示します。</p>
+
+          <div class="follow-stack">
+            <div class="insight-card">
+              <h3>今すぐ見るべき案件</h3>
+              <ul class="insight-list" id="insightList"></ul>
+            </div>
+
+            <div class="focus-card">
+              <h3>優先フォロー対象</h3>
+              <ul class="focus-list" id="focusList"></ul>
+            </div>
+
+            <div class="support-card">
+              <h3>フォロー候補</h3>
+              <ul class="support-list" id="supportList"></ul>
+            </div>
+          </div>
+        </div>
+      </article>
+    </section>
+
+    <section class="section">
+      <div class="section-body">
+        <h2 class="section-title">案件一覧</h2>
+        <p class="section-sub">割り当て担当者（複数）は種別とマスタ設定から自動反映されます。実作業者・状態を更新できます。</p>
+
+        <div class="manual-open-row">
+          <button id="openManualModalBtn" type="button" class="action-btn">個人タスクを新規登録</button>
+        </div>
+
+        <div id="manualModal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="manualModalTitle">
+          <div class="modal-card">
+            <div class="modal-head">
+              <h3 id="manualModalTitle" class="section-title" style="font-size:0.96rem;">個人タスクの新規登録</h3>
+              <button id="closeManualModalBtn" type="button" class="modal-close">閉じる</button>
+            </div>
+            <div class="manual-form" style="margin-top:0;">
+              <p class="manual-note">Forms外で発生したタスクをここから追加できます。登録後は一覧・負荷状況に反映されます。</p>
+              <div class="manual-grid">
+                <label class="manual-label">
+                  件名（必須）
+                  <input id="manualTitle" type="text" maxlength="120" placeholder="例: マスタ更新対応">
+                </label>
+                <label class="manual-label">
+                  緊急度
+                  <select id="manualPriority">
+                    <option value="高">高</option>
+                    <option value="中" selected>中</option>
+                    <option value="低">低</option>
+                  </select>
+                </label>
+                <label class="manual-label">
+                  実作業者
+                  <select id="manualWorker"></select>
+                </label>
+              </div>
+              <div class="manual-grid-2">
+                <label class="manual-label">
+                  期限
+                  <input id="manualDueDate" type="date">
+                </label>
+                <label class="manual-label">
+                  負荷ポイント（1〜10）
+                  <input id="manualLoadPoint" type="number" min="1" max="10" value="3" placeholder="例: 3">
+                </label>
+              </div>
+              <label class="manual-label">
+                詳細（任意）
+                <input id="manualDetails" type="text" maxlength="300" placeholder="対応内容のメモを入力">
+              </label>
+              <p class="manual-note">負荷ポイント（1〜10）は担当者の負荷集計に使います。大きいほど重い作業として扱います。</p>
+              <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                <button id="manualAddBtn" type="button" class="action-btn">個人タスクを登録</button>
+                <button id="cancelManualModalBtn" type="button" class="secondary-btn">キャンセル</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="list-toolbar">
+          <div class="filter-panel">
+            <div class="filter-row">
+              <select id="viewMode">
+                <option value="all">全員表示</option>
+                <option value="personal">個人表示</option>
+              </select>
+              <select id="personSelect" disabled>
+                <option value="all">担当者を選択</option>
+              </select>
+              <input id="surnameSearch" type="search" placeholder="苗字で検索" disabled>
+            </div>
+            <div class="filter-row">
+              <select id="categoryFilter">
+                <option value="all">カテゴリ: すべて</option>
+              </select>
+            </div>
+            <div class="filter-row" style="gap: 8px;">
+              <label for="sortKey" style="font-weight: 500;">並び替え:</label>
+              <select id="sortKey">
+                <option value="priority">緊急度</option>
+                <option value="createdAt" selected>受付日</option>
+                <option value="status">状態</option>
+              </select>
+              <select id="sortOrder">
+                <option value="asc">昇順</option>
+                <option value="desc" selected>降順</option>
+              </select>
+            </div>
+          </div>
+
+          <aside class="legend-box" aria-label="カテゴリ色の凡例">
+            <h3 class="legend-title">カテゴリ色の凡例</h3>
+            <div class="legend-items">
+              <span class="task-tag task-tag-buhin">部品</span>
+              <span class="task-tag task-tag-gms">GMS</span>
+              <span class="task-tag task-tag-quality">品質向上業務</span>
+              <span class="task-tag task-tag-press">機械トラブル（圧入機）</span>
+              <span class="task-tag task-tag-underground">機械トラブル（地下製品）</span>
+              <span class="task-tag task-tag-backoffice">後方支援システム</span>
+              <span class="task-tag task-tag-salesforce">Salesforce</span>
+              <span class="task-tag task-tag-personal">個人タスク</span>
+              <span class="task-tag task-tag-other">その他</span>
+            </div>
+          </aside>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>件名</th>
+                <th>緊急度</th>
+                <th>割り当て担当者（複数）</th>
+                <th>実作業者</th>
+                <th>状態</th>
+                <th>詳細</th>
+                <th>保存</th>
+              </tr>
+            </thead>
+            <tbody id="historyTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <div id="detailModal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="detailModalTitle">
+    <div class="detail-card">
+      <div class="modal-head">
+        <h3 id="detailModalTitle" class="section-title" style="font-size:0.96rem;">タスク詳細</h3>
+        <button id="closeDetailModalBtn" type="button" class="modal-close">閉じる</button>
+      </div>
+      <div id="detailMetaGrid" class="detail-grid"></div>
+      <div class="detail-block">
+        <div class="detail-label">編集</div>
+        <div class="detail-edit-grid">
+          <label class="manual-label">
+            実作業者
+            <select id="detailEditWorker"></select>
+          </label>
+          <label class="manual-label">
+            状態
+            <select id="detailEditStatus"></select>
+          </label>
+        </div>
+        <div>
+          <button id="detailSaveBtn" type="button" class="row-save-btn">この内容で保存</button>
+        </div>
+      </div>
+      <div class="detail-block">
+        <div class="detail-label">詳細内容</div>
+        <p id="detailText" class="detail-text"></p>
+      </div>
+      <div class="detail-block">
+        <div class="detail-label">添付ファイル</div>
+        <div id="detailAttachmentList" style="display:grid; gap:8px;"></div>
+      </div>
+    </div>
+  </div>
+
+  <div id="workerTaskModal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="workerTaskModalTitle">
+    <div class="worker-task-card">
+      <div class="modal-head">
+        <h3 id="workerTaskModalTitle" class="section-title" style="font-size:1rem;">担当者タスク状況</h3>
+        <button id="closeWorkerTaskModalBtn" type="button" class="modal-close">閉じる</button>
+      </div>
+      <div id="workerTaskSummary" class="worker-summary"></div>
+      <div class="detail-block">
+        <div class="detail-label">保有タスク一覧</div>
+        <div id="workerTaskListWrap"></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const STORAGE_KEY = "ps_support_dual_view_v1";
+    const MASTER_KEY = "ps_master_v1";
+    const BASE_POINTS = 20; // マスタ管理と同じ基準ポイント
+    const SHARED_API_BASE = (typeof __SHARED_API_BASE !== 'undefined' && __SHARED_API_BASE) || "http://localhost:3030";
+    const SHARED_STATE_API_URL = `${SHARED_API_BASE}/api/state`;
+    // OneDrive 等に Power Automate で出力する JSON の直接ダウンロード URL をここに入れてください
+    // テスト用にローカルの静的サーバを使う場合は下記の URL のまま使えます:
+    // http://localhost:8000/storage/inquiry-feed.json
+    // ※将来 JSON API を使う場合のための定義（今回は未使用）
+    // const SHARED_JSON_URL = "http://localhost:8000/storage/inquiry-feed.json";
+    // IndexedDB (Dexie) + in-page broadcast channel for cross-tab sync
+    const db = new Dexie("ps_support_db");
+    db.version(1).stores({ inquiries: "id,createdAt,category,worker,assignee", history: "id,inquiryId,timestamp" });
+    const bc = new BroadcastChannel("ps_support_channel");
+    const DEFAULT_CAPACITY_LIMITS = {
+      "長崎 宏哉": { maxLoad: 12, maxTasks: 4 },
+      "笹岡 浩司": { maxLoad: 10, maxTasks: 4 },
+      "西岡 紗希": { maxLoad: 10, maxTasks: 4 },
+      "濱田 拓": { maxLoad: 12, maxTasks: 5 },
+      "西村 浩親": { maxLoad: 10, maxTasks: 4 },
+      "大寺 真生": { maxLoad: 9, maxTasks: 3 },
+      "市川 拓海": { maxLoad: 9, maxTasks: 3 },
+      "尾立 大聖": { maxLoad: 10, maxTasks: 4 },
+      "佐々木 和麻": { maxLoad: 11, maxTasks: 4 },
+      "渡邊 和秀": { maxLoad: 10, maxTasks: 4 },
+      "高橋 有正": { maxLoad: 9, maxTasks: 3 },
+      "島崎 正行": { maxLoad: 10, maxTasks: 4 },
+      "島村 成巨": { maxLoad: 9, maxTasks: 3 },
+      "藤田 直幸": { maxLoad: 11, maxTasks: 4 },
+      "藤本 涼平": { maxLoad: 9, maxTasks: 3 },
+      "塩田 湧己": { maxLoad: 10, maxTasks: 4 },
+      "成岡 連生": { maxLoad: 10, maxTasks: 4 },
+      "上岡 弥生": { maxLoad: 9, maxTasks: 3 },
+      "岡林 梢": { maxLoad: 9, maxTasks: 3 }
+    };
+    const DEFAULT_MASTER_ASSIGNEES = [
+      { name: "長崎 宏哉", maxLoad: 12, active: true, categories: ["部品", "品質向上業務", "機械トラブル（圧入機）", "機械トラブル（地下製品）"] },
+      { name: "笹岡 浩司", maxLoad: 10, active: true, categories: [] },
+      { name: "西岡 紗希", maxLoad: 10, active: true, categories: ["部品", "後方支援システム"] },
+      { name: "濱田 拓", maxLoad: 12, active: true, categories: ["部品", "GMS", "品質向上業務", "機械トラブル（圧入機）", "機械トラブル（地下製品）"] },
+      { name: "西村 浩親", maxLoad: 10, active: true, categories: [] },
+      { name: "大寺 真生", maxLoad: 9, active: true, categories: ["部品", "後方支援システム"] },
+      { name: "市川 拓海", maxLoad: 9, active: true, categories: ["部品", "後方支援システム"] },
+      { name: "尾立 大聖", maxLoad: 10, active: true, categories: ["部品", "GMS"] },
+      { name: "佐々木 和麻", maxLoad: 11, active: true, categories: ["GMS", "品質向上業務", "機械トラブル（圧入機）", "機械トラブル（地下製品）"] },
+      { name: "渡邊 和秀", maxLoad: 10, active: true, categories: ["品質向上業務", "機械トラブル（圧入機）"] },
+      { name: "高橋 有正", maxLoad: 9, active: true, categories: ["品質向上業務"] },
+      { name: "島崎 正行", maxLoad: 10, active: true, categories: ["品質向上業務", "機械トラブル（圧入機）", "機械トラブル（地下製品）"] },
+      { name: "島村 成巨", maxLoad: 9, active: true, categories: ["機械トラブル（地下製品）"] },
+      { name: "藤田 直幸", maxLoad: 11, active: true, categories: ["後方支援システム", "Salesforce"] },
+      { name: "藤本 涼平", maxLoad: 9, active: true, categories: ["後方支援システム", "Salesforce"] },
+      { name: "塩田 湧己", maxLoad: 10, active: true, categories: [] },
+      { name: "成岡 連生", maxLoad: 10, active: true, categories: ["Salesforce"] },
+      { name: "上岡 弥生", maxLoad: 9, active: true, categories: [] },
+      { name: "岡林 梢", maxLoad: 9, active: true, categories: [] }
+    ];
+    const INITIAL_SPARE_LANE_COUNT = 6;
+    const DEMO_OVERDUE_INQUIRY_ID = "PS-DEMO-OVERDUE-001";
+
+    const seedData = {
+      inquiries: [
+        {
+          id: "PS-260406-001",
+          title: "【部品】営業部 <ユーザー名> からの問合せ",
+          requester: "<ユーザー名>",
+          department: "営業部",
+          category: "部品",
+          priority: "高",
+          assignee: "長崎 宏哉",
+          worker: "長崎 宏哉",
+          dueDate: upcomingDate(1),
+          loadPoint: 5,
+          progress: 35,
+          status: "対応中",
+          details: "CSV出力後にExcelで開くと一部の文字が崩れます。",
+          createdAt: recentDateTime(8),
+          updatedAt: recentDateTime(2)
+        },
+        {
+          id: "PS-260406-002",
+          title: "【後方支援システム】総務部 <ユーザー名> からの問合せ",
+          requester: "<ユーザー名>",
+          department: "総務部",
+          category: "後方支援システム",
+          priority: "中",
+          assignee: "藤田 直幸",
+          worker: "藤田 直幸",
+          dueDate: upcomingDate(3),
+          loadPoint: 3,
+          progress: 0,
+          status: "受付",
+          details: "権限付与の申請先と設定手順を確認したいです。",
+          createdAt: recentDateTime(6),
+          updatedAt: recentDateTime(6)
+        },
+        {
+          id: "PS-260406-003",
+          title: "【Salesforce】業務推進部 <ユーザー名> からの問合せ",
+          requester: "<ユーザー名>",
+          department: "業務推進部",
+          category: "Salesforce",
+          priority: "低",
+          assignee: "成岡 連生",
+          worker: "成岡 連生",
+          dueDate: upcomingDate(7),
+          loadPoint: 2,
+          progress: 100,
+          status: "完了",
+          details: "一覧画面から戻ったあとも条件を残してほしいです。",
+          createdAt: recentDateTime(18),
+          updatedAt: recentDateTime(1)
+        },
+        {
+          id: "PS-260406-004",
+          title: "【部品】営業部 佐藤太郎 からの問合せ",
+          requester: "佐藤太郎",
+          department: "営業部",
+          category: "部品",
+          priority: "高",
+          assignee: "長崎 宏哉",
+          worker: "長崎 宏哉",
+          dueDate: upcomingDate(2),
+          loadPoint: 4,
+          progress: 60,
+          status: "対応中",
+          details: "システム内での集計機能が正しく計算されていません。",
+          createdAt: recentDateTime(5),
+          updatedAt: recentDateTime(1)
+        },
+        {
+          id: "PS-260406-005",
+          title: "【部品】営業部 鈴木花子 からの問合せ",
+          requester: "鈴木花子",
+          department: "営業部",
+          category: "部品",
+          priority: "中",
+          assignee: "濱田 拓",
+          worker: "濱田 拓",
+          dueDate: upcomingDate(4),
+          loadPoint: 6,
+          progress: 20,
+          status: "対応中",
+          details: "月次集計の処理が遅い。パフォーマンス改善を希望します。",
+          createdAt: recentDateTime(4),
+          updatedAt: recentDateTime(2)
+        },
+        {
+          id: "PS-260406-006",
+          title: "【後方支援システム】総務部 鈴木次郎 からの問合せ",
+          requester: "鈴木次郎",
+          department: "総務部",
+          category: "後方支援システム",
+          priority: "中",
+          assignee: "西岡 紗希",
+          worker: "西岡 紗希",
+          dueDate: upcomingDate(5),
+          loadPoint: 4,
+          progress: 45,
+          status: "対応中",
+          details: "権限の有効期限切れ後の自動削除機能の確認。",
+          createdAt: recentDateTime(3),
+          updatedAt: recentDateTime(3)
+        },
+        {
+          id: "PS-260406-007",
+          title: "【Salesforce】営業部 田中美咲 からの問合せ",
+          requester: "田中美咲",
+          department: "営業部",
+          category: "Salesforce",
+          priority: "低",
+          assignee: "市川 拓海",
+          worker: "市川 拓海",
+          dueDate: upcomingDate(8),
+          loadPoint: 2,
+          progress: 0,
+          status: "受付",
+          details: "顧客情報のインポート時のバリデーション設定について。",
+          createdAt: recentDateTime(2),
+          updatedAt: recentDateTime(2)
+        },
+        {
+          id: "PS-260406-008",
+          title: "【部品】営業部 高橋健一 からの問合せ",
+          requester: "高橋健一",
+          department: "営業部",
+          category: "部品",
+          priority: "高",
+          assignee: "長崎 宏哉",
+          worker: "長崎 宏哉",
+          dueDate: upcomingDate(2),
+          loadPoint: 5,
+          progress: 10,
+          status: "受付",
+          details: "営業レポートの出力方式が変わったとのことで、確認願います。",
+          createdAt: recentDateTime(1),
+          updatedAt: recentDateTime(1)
+        },
+        {
+          id: "PS-260406-009",
+          title: "【部品】営業部 水野由紀 からの問合せ",
+          requester: "水野由紀",
+          department: "営業部",
+          category: "部品",
+          priority: "中",
+          assignee: "濱田 拓",
+          worker: "濱田 拓",
+          dueDate: upcomingDate(6),
+          loadPoint: 5,
+          progress: 75,
+          status: "対応中",
+          details: "複数ファイルの一括インポートに失敗するケースのトラブル。",
+          createdAt: recentDateTime(7),
+          updatedAt: recentDateTime(1)
+        },
+        {
+          id: "PS-260406-010",
+          title: "【後方支援システム】総務部 伊藤春菜 からの問合せ",
+          requester: "伊藤春菜",
+          department: "総務部",
+          category: "後方支援システム",
+          priority: "低",
+          assignee: "藤本 涼平",
+          worker: "藤本 涼平",
+          dueDate: upcomingDate(10),
+          loadPoint: 2,
+          progress: 50,
+          status: "対応中",
+          details: "レポート画面での検索機能の改善要望。",
+          createdAt: recentDateTime(9),
+          updatedAt: recentDateTime(1)
+        }
+      ],
+      history: []
+    };
+
+    const state = loadState();
+    ensureDemoOverdueInquiry(state);
+
+    const overdueAlert = document.getElementById("overdueAlert");
+    const overdueAlertText = document.getElementById("overdueAlertText");
+    const overdueAlertBadge = document.getElementById("overdueAlertBadge");
+    const overdueAlertList = document.getElementById("overdueAlertList");
+    const unassignedAlert = document.getElementById("unassignedAlert");
+    const unassignedAlertText = document.getElementById("unassignedAlertText");
+    const unassignedAlertBadge = document.getElementById("unassignedAlertBadge");
+    const unassignedAlertList = document.getElementById("unassignedAlertList");
+    const kpiGrid = document.getElementById("kpiGrid");
+    const workloadList = document.getElementById("workloadList");
+    const focusLane = document.getElementById("focusLane");
+    const spareLane = document.getElementById("spareLane");
+    const spareLaneMoreBtn = document.getElementById("spareLaneMoreBtn");
+    const focusList = document.getElementById("focusList");
+    const supportList = document.getElementById("supportList");
+    const insightList = document.getElementById("insightList");
+    const viewMode = document.getElementById("viewMode");
+    const personSelect = document.getElementById("personSelect");
+    const surnameSearch = document.getElementById("surnameSearch");
+    const historyTableBody = document.getElementById("historyTableBody");
+    const sortKey = document.getElementById("sortKey");
+    const sortOrder = document.getElementById("sortOrder");
+    const categoryFilter = document.getElementById("categoryFilter");
+    const manualModal = document.getElementById("manualModal");
+    const openManualModalBtn = document.getElementById("openManualModalBtn");
+    const closeManualModalBtn = document.getElementById("closeManualModalBtn");
+    const cancelManualModalBtn = document.getElementById("cancelManualModalBtn");
+    const manualTitle = document.getElementById("manualTitle");
+    const manualPriority = document.getElementById("manualPriority");
+    const manualWorker = document.getElementById("manualWorker");
+    const manualDueDate = document.getElementById("manualDueDate");
+    const manualLoadPoint = document.getElementById("manualLoadPoint");
+    const manualDetails = document.getElementById("manualDetails");
+    const manualAddBtn = document.getElementById("manualAddBtn");
+    const detailModal = document.getElementById("detailModal");
+    const closeDetailModalBtn = document.getElementById("closeDetailModalBtn");
+    const detailMetaGrid = document.getElementById("detailMetaGrid");
+    const detailText = document.getElementById("detailText");
+    const detailAttachmentList = document.getElementById("detailAttachmentList");
+    const detailEditWorker = document.getElementById("detailEditWorker");
+    const detailEditStatus = document.getElementById("detailEditStatus");
+    const detailSaveBtn = document.getElementById("detailSaveBtn");
+    const workerTaskModal = document.getElementById("workerTaskModal");
+    const closeWorkerTaskModalBtn = document.getElementById("closeWorkerTaskModalBtn");
+    const workerTaskSummary = document.getElementById("workerTaskSummary");
+    const workerTaskListWrap = document.getElementById("workerTaskListWrap");
+    let activeDetailInquiryId = "";
+    let activeWorkerName = "";
+    let spareLaneVisibleCount = INITIAL_SPARE_LANE_COUNT;
+    let sharedSyncTimerId = 0;
+    
+/* =========================================================
+ * SharePoint リストからデータを取得して state に反映
+ * ========================================================= */
+async function loadFromSharePointList() {
+  const url =
+    "/_api/web/lists/GetByTitle('問合せ管理DB')/items" +
+    "?$orderby=受付日 desc&$top=200";
+
+  const res = await fetch(url, {
+    headers: {
+      "Accept": "application/json;odata=nometadata"
+    }
+  });
+
+  if (!res.ok) {
+    throw new Error("SharePoint リスト取得失敗");
+  }
+
+  const data = await res.json();
+
+  state.inquiries = data.value.map(item => ({
+    id: item.Id,
+    title: item.件名 ?? "",
+    requester: item.氏名 ?? "",
+    department: item.部署名 ?? "",
+    category: item.問合せ区分 ?? "",
+    priority: "中",
+    worker: "",
+    assignee: "",
+    assignedMembers: [],
+    status: "受付",
+    details: item.内容 ?? "",
+    dueDate: item.希望納期 ?? "",
+    loadPoint: 3,
+    progress: 0,
+    createdAt: item._x53d7_x4ed8_x65e5_,
+    updatedAt: item._x53d7_x4ed8_x65e5_
+  }));
+
+  state.history = [];
+  render();
+}
+
+/* =========================================================
+ * 初期化処理（イベント登録 → 既存同期 → SPリスト取得）
+ * ========================================================= */
+async function initialize() {
+  /* --- 表示初期設定 --- */
+  sortKey.value = "createdAt";
+  sortOrder.value = "desc";
+
+  /* --- イベントリスナー（※元のものをそのまま残す） --- */
+  window.addEventListener("storage", handleStorageChange);
+  viewMode.addEventListener("change", handleViewModeChange);
+  personSelect.addEventListener("change", renderHistoryTable);
+
+  overdueAlertList.addEventListener("keydown", handleOverdueAlertKeydown);
+  unassignedAlertList.addEventListener("click", handleUnassignedAlertClick);
+  unassignedAlertList.addEventListener("keydown", handleUnassignedAlertKeydown);
+  spareLaneMoreBtn.addEventListener("click", handleSpareLaneMoreClick);
+
+  closeDetailModalBtn.addEventListener("click", closeDetailModal);
+  detailModal.addEventListener("click", handleDetailModalBackdropClick);
+  detailAttachmentList.addEventListener("click", handleAttachmentActionClick);
+  detailSaveBtn.addEventListener("click", handleDetailSave);
+
+  closeWorkerTaskModalBtn.addEventListener("click", closeWorkerTaskModal);
+  workerTaskModal.addEventListener("click", handleWorkerTaskModalBackdropClick);
+
+  manualAddBtn.addEventListener("click", handleManualAdd);
+
+  /* --- 既存のローカル同期処理 --- */
+  try { await syncFromDB(); } catch (e) {}
+  await syncStateFromSharedStore();
+  try { await fetchSharedJsonAndUpdate(); } catch (e) {}
+
+  render();
+  setInterval(fetchSharedJsonAndUpdate, 60000);
+
+  /* ✅ 最後に SharePoint を「正」として読み込む */
+  await loadFromSharePointList();
+}
+
+/* =========================================================
+ * 初期化は 반드시 1 回だけ
+ * ========================================================= */
+initialize();
+ 
+    function handleStorageChange(event) {
+      if (event.key !== STORAGE_KEY || typeof event.newValue !== "string") {
+        return;
+      }
+
+      try {
+        const parsed = JSON.parse(event.newValue);
+        state.inquiries = Array.isArray(parsed?.inquiries) ? parsed.inquiries : [];
+        state.history = Array.isArray(parsed?.history) ? parsed.history : [];
+        render();
+      } catch (error) {
+        // Ignore malformed storage payloads to keep the current screen usable.
+      }
+    }
+
+    function openManualModal() {
+      manualModal.classList.add("open");
+      renderManualWorkerOptions();
+      manualTitle.focus();
+    }
+
+    function closeManualModal() {
+      manualModal.classList.remove("open");
+      openManualModalBtn.focus();
+    }
+
+    function requestCloseManualModal() {
+      if (!hasManualDraft()) {
+        closeManualModal();
+        return;
+      }
+
+      const discard = window.confirm("入力内容を破棄して閉じますか？\nOK: 破棄して閉じる / キャンセル: 保持して閉じる");
+      if (discard) {
+        clearManualInputs(false);
+      }
+      closeManualModal();
+    }
+
+    function hasManualDraft() {
+      const title = manualTitle.value.trim();
+      const dueDate = manualDueDate.value;
+      const details = manualDetails.value.trim();
+      const hasDefaultPriority = manualPriority.value === "中";
+      const hasDefaultLoad = String(manualLoadPoint.value || "").trim() === "3";
+      const defaultWorker = getAssignees()[0] || "";
+      const hasWorkerChanged = manualWorker.value !== defaultWorker;
+      return Boolean(title || dueDate || details || !hasDefaultPriority || !hasDefaultLoad || hasWorkerChanged);
+    }
+
+    function handleManualModalBackdropClick(event) {
+      if (event.target === manualModal) {
+        requestCloseManualModal();
+      }
+    }
+
+    function handleManualModalEscape(event) {
+      if (event.key === "Escape" && manualModal.classList.contains("open")) {
+        requestCloseManualModal();
+        return;
+      }
+      if (event.key === "Escape" && detailModal.classList.contains("open")) {
+        closeDetailModal();
+        return;
+      }
+      if (event.key === "Escape" && workerTaskModal.classList.contains("open")) {
+        closeWorkerTaskModal();
+      }
+    }
+
+    function render() {
+      renderOverdueAlert();
+      renderUnassignedAlert();
+      renderPersonOptions();
+      renderCategoryOptions();
+      renderManualWorkerOptions();
+      renderKpis();
+      renderWorkloadMap();
+      renderAssistPanels();
+      renderFollowupInsights();
+      renderHistoryTable();
+    }
+
+    function renderOverdueAlert() {
+      const overdue = state.inquiries
+        .map((item) => normalizeInquiry(item))
+        .filter((item) => isOverdueInquiry(item))
+        .sort((left, right) => new Date(left.dueDate).getTime() - new Date(right.dueDate).getTime());
+
+      if (!overdue.length) {
+        overdueAlert.hidden = true;
+        overdueAlertList.innerHTML = "";
+        return;
+      }
+
+      overdueAlert.hidden = false;
+      overdueAlertBadge.textContent = `${overdue.length}件`;
+      overdueAlertText.textContent = "期限を過ぎた未完了案件です。優先的に確認してください。";
+      overdueAlertList.innerHTML = overdue.slice(0, 5).map((item) => {
+        const dueText = item.dueDate || "期限未設定";
+        const workerText = item.worker || "未設定";
+        return `<li role="button" tabindex="0" data-open-detail="${escapeHtml(item.id)}">${escapeHtml(item.title || item.id)} / 期限: ${escapeHtml(dueText)} / 実作業者: ${escapeHtml(workerText)}</li>`;
+      }).join("");
+    }
+
+    function renderUnassignedAlert() {
+      const unassigned = state.inquiries
+        .map((item) => normalizeInquiry(item))
+        .filter((item) => isUnassignedInquiry(item))
+        .sort((left, right) => new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime());
+
+      if (!unassigned.length) {
+        unassignedAlert.hidden = true;
+        unassignedAlertList.innerHTML = "";
+        return;
+      }
+
+      unassignedAlert.hidden = false;
+      unassignedAlertBadge.textContent = `${unassigned.length}件`;
+      unassignedAlertText.textContent = "実作業者が未設定の案件を表示しています。担当者を設定して保存すると非表示になります。";
+      unassignedAlertList.innerHTML = unassigned.slice(0, 5).map((item) => {
+        const createdAtText = item.createdAt ? formatDateTime(item.createdAt) : "日時未設定";
+        const categoryText = item.category || "未設定";
+        return `<li role="button" tabindex="0" data-open-detail="${escapeHtml(item.id)}">${escapeHtml(item.title || item.id)} / カテゴリ: ${escapeHtml(categoryText)} / 受付: ${escapeHtml(createdAtText)}</li>`;
+      }).join("");
+    }
+
+    function renderCategoryOptions() {
+      const previous = categoryFilter.value || "all";
+      const categories = Array.from(new Set(
+        state.inquiries
+          .map((item) => String(item.category || "").trim())
+          .filter(Boolean)
+      )).sort((left, right) => left.localeCompare(right, "ja"));
+
+      const options = ['<option value="all">カテゴリ: すべて</option>'];
+      categories.forEach((category) => {
+        options.push(`<option value="${escapeHtml(category)}">カテゴリ: ${escapeHtml(category)}</option>`);
+      });
+      categoryFilter.innerHTML = options.join("");
+      categoryFilter.value = categories.includes(previous) ? previous : "all";
+    }
+
+    function renderManualWorkerOptions() {
+      const names = getAssignees();
+      const current = manualWorker.value;
+      const options = ["<option value=\"\">実作業者を選択</option>"];
+      names.forEach((name) => {
+        options.push(`<option value="${escapeHtml(name)}">${escapeHtml(name)}</option>`);
+      });
+      manualWorker.innerHTML = options.join("");
+      if (names.includes(current)) {
+        manualWorker.value = current;
+      } else if (names.length) {
+        manualWorker.value = names[0];
+      }
+    }
+
+    function handleManualAdd() {
+      const title = manualTitle.value.trim();
+      const worker = manualWorker.value;
+      const priority = manualPriority.value;
+      const details = manualDetails.value.trim();
+      const parsedLoad = Number(manualLoadPoint.value);
+
+      if (!title) {
+        alert("件名を入力してください。");
+        manualTitle.focus();
+        return;
+      }
+
+      if (!worker) {
+        alert("実作業者を選択してください。");
+        manualWorker.focus();
+        return;
+      }
+
+      const loadPoint = Number.isFinite(parsedLoad)
+        ? Math.max(1, Math.min(10, Math.round(parsedLoad)))
+        : 3;
+
+      const now = new Date().toISOString();
+      const inquiry = {
+        id: buildManualTaskId(),
+        title: `【個人タスク】${title}`,
+        requester: "<ユーザー名>",
+        department: "PS課",
+        category: "個人タスク",
+        priority,
+        assignee: worker,
+        assignedMembers: [worker],
+        worker,
+        dueDate: manualDueDate.value || upcomingDate(3),
+        loadPoint,
+        progress: 0,
+        status: "受付",
+        details: details || "Forms外で発生した個人管理タスク",
+        createdAt: now,
+        updatedAt: now
+      };
+
+      state.inquiries.unshift(inquiry);
+      state.history.unshift({
+        id: crypto.randomUUID(),
+        inquiryId: inquiry.id,
+        type: "created",
+        timestamp: now,
+        summary: "タスク管理画面から個人タスクを登録",
+        detail: `実作業者: ${worker} / 緊急度: ${priority}`
+      });
+      saveState();
+      clearManualInputs();
+      render();
+      closeManualModal();
+    }
+
+    function clearManualInputs(shouldFocus = true) {
+      manualTitle.value = "";
+      manualPriority.value = "中";
+      manualDueDate.value = "";
+      manualLoadPoint.value = "3";
+      manualDetails.value = "";
+      renderManualWorkerOptions();
+      if (shouldFocus) {
+        manualTitle.focus();
+      }
+    }
+
+    function buildManualTaskId() {
+      const stamp = new Date().toISOString().slice(2, 10).replaceAll("-", "");
+      const serialBase = state.inquiries
+        .map((item) => {
+          const match = String(item.id || "").match(/^PS-M-(\d{6})-(\d{3})$/);
+          return match ? Number(match[2]) : 0;
+        })
+        .reduce((max, value) => Math.max(max, value), 0);
+      const serial = String(serialBase + 1).padStart(3, "0");
+      return `PS-M-${stamp}-${serial}`;
+    }
+
+
+    function handleViewModeChange() {
+      const personal = viewMode.value === "personal";
+      personSelect.disabled = !personal;
+      surnameSearch.disabled = !personal;
+      if (!personal) {
+        personSelect.value = "all";
+        surnameSearch.value = "";
+      }
+      renderHistoryTable();
+    }
+
+    function renderPersonOptions() {
+      const previous = personSelect.value || "all";
+      const names = getAssignees();
+      const options = [`<option value="all">担当者を選択</option>`];
+      names.forEach((name) => {
+        options.push(`<option value="${escapeHtml(name)}">${escapeHtml(name)}</option>`);
+      });
+      personSelect.innerHTML = options.join("");
+      personSelect.value = names.includes(previous) ? previous : "all";
+    }
+
+    function renderKpis() {
+      const rows = buildWorkloadRows();
+      const activeCount = state.inquiries.filter((item) => item.status !== "完了").length;
+      const focusCount = rows.filter((item) => item.level === "high").length;
+      const warnCount = rows.filter((item) => item.level === "medium").length;
+      const spareCount = rows.filter((item) => item.level === "low").length;
+      const avgUse = rows.length
+        ? Math.round(rows.reduce((sum, row) => sum + row.utilization, 0) / rows.length * 100)
+        : 0;
+
+      const items = [
+        { label: "対応中案件", value: activeCount, note: "完了以外" },
+        { label: "集中", value: `${focusCount}人`, note: "即フォロー候補" },
+        { label: "やや集中", value: `${warnCount}人`, note: "注意ライン" },
+        { label: "余力有", value: `${spareCount}人`, note: "追加担当可能" },
+        { label: "平均使用率", value: `${avgUse}%`, note: "課内全体" }
+      ];
+
+      kpiGrid.innerHTML = items.map((item) => `
+        <article class="kpi">
+          <div class="kpi-label">${escapeHtml(item.label)}</div>
+          <div class="kpi-value">${escapeHtml(String(item.value))}</div>
+          <div class="kpi-note">${escapeHtml(item.note)}</div>
+        </article>
+      `).join("");
+    }
+
+    function renderWorkloadMap() {
+      const rows = buildWorkloadRows();
+      const maxLoad = Math.max(1, ...rows.map((row) => row.load));
+
+      workloadList.innerHTML = rows.map((row) => {
+        const width = Math.min(100, Math.round(row.utilization * 100));
+        const percent = Math.round(row.utilization * 100);
+        return `
+          <article class="workload-item range-${row.level}" role="button" tabindex="0" data-worker-name="${escapeHtml(row.assignee)}" aria-label="${escapeHtml(row.assignee)} の保有タスクを表示">
+            <div class="row-head">
+              <span class="name">${escapeHtml(row.assignee)}</span>
+              <span class="badge">${escapeHtml(row.label)}</span>
+            </div>
+            <div class="meta">案件 ${row.count}/${row.maxTasks} ・ 負荷 ${row.load}/${row.maxLoad} ・ 使用率 ${percent}%</div>
+            <div class="bar-wrap"><div class="bar-fill" style="width:${Math.min(100, width)}%"></div></div>
+          </article>
+        `;
+      }).join("");
+
+      const focusNames = rows.filter((row) => row.level !== "low");
+      const spareNames = rows.filter((row) => row.level === "low");
+      const visibleSpareNames = spareNames.slice(0, spareLaneVisibleCount);
+
+      focusLane.innerHTML = focusNames.length
+        ? focusNames.map((row) => `<li>${escapeHtml(row.assignee)} (${Math.round(row.utilization * 100)}%)</li>`).join("")
+        : "<li>集中者なし</li>";
+
+      spareLane.innerHTML = visibleSpareNames.length
+        ? visibleSpareNames.map((row) => `<li>${escapeHtml(row.assignee)} (${Math.round(row.utilization * 100)}%)</li>`).join("")
+        : "<li>余力者なし</li>";
+
+      if (spareNames.length > visibleSpareNames.length) {
+        spareLaneMoreBtn.hidden = false;
+        spareLaneMoreBtn.textContent = `さらに表示 (${spareNames.length - visibleSpareNames.length}人)`;
+      } else if (spareNames.length > INITIAL_SPARE_LANE_COUNT) {
+        spareLaneMoreBtn.hidden = false;
+        spareLaneMoreBtn.textContent = "折りたたむ";
+      } else {
+        spareLaneMoreBtn.hidden = true;
+      }
+    }
+
+    function handleSpareLaneMoreClick() {
+      const rows = buildWorkloadRows();
+      const spareNames = rows.filter((row) => row.level === "low");
+      if (spareLaneVisibleCount >= spareNames.length) {
+        spareLaneVisibleCount = INITIAL_SPARE_LANE_COUNT;
+        renderWorkloadMap();
+        return;
+      }
+
+      spareLaneVisibleCount += INITIAL_SPARE_LANE_COUNT;
+      renderWorkloadMap();
+    }
+
+    function handleWorkloadMapClick(event) {
+      const card = event.target.closest("[data-worker-name]");
+      if (!card) {
+        return;
+      }
+      openWorkerTaskModal(card.dataset.workerName);
+    }
+
+    function openWorkerTaskModal(workerName) {
+      const targetName = String(workerName || "").trim();
+      if (!targetName) {
+        return;
+      }
+      activeWorkerName = targetName;
+      renderWorkerTaskModal(targetName);
+      workerTaskModal.classList.add("open");
+    }
+
+    function closeWorkerTaskModal() {
+      workerTaskModal.classList.remove("open");
+      activeWorkerName = "";
+    }
+
+    function handleWorkerTaskModalBackdropClick(event) {
+      if (event.target === workerTaskModal) {
+        closeWorkerTaskModal();
+      }
+    }
+
+    function renderWorkerTaskModal(workerName) {
+      const assigned = state.inquiries
+        .map((item) => normalizeInquiry(item))
+        .filter((item) => item.worker === workerName)
+        .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
+
+      const active = assigned.filter((item) => item.status !== "完了");
+      const done = assigned.filter((item) => item.status === "完了");
+      const totalLoad = active.reduce((sum, item) => sum + (Number(item.loadPoint) || 0), 0);
+
+      document.getElementById("workerTaskModalTitle").textContent = `${workerName} の保有タスク状況`;
+
+      const summaryItems = [
+        ["保有タスク", `${assigned.length}件`],
+        ["対応中", `${active.length}件`],
+        ["完了", `${done.length}件`],
+        ["対応中の負荷", `${totalLoad}pt`]
+      ];
+      workerTaskSummary.innerHTML = summaryItems.map(([label, value]) => `
+        <div class="worker-kpi">
+          <div class="worker-kpi-label">${escapeHtml(label)}</div>
+          <div class="worker-kpi-value">${escapeHtml(value)}</div>
+        </div>
+      `).join("");
+
+      if (!assigned.length) {
+        workerTaskListWrap.innerHTML = '<div class="empty">この担当者の保有タスクはありません。</div>';
+        return;
+      }
+
+      workerTaskListWrap.innerHTML = `
+        <table class="worker-task-table">
+          <thead>
+            <tr>
+              <th>件名</th>
+              <th>カテゴリ</th>
+              <th>緊急度</th>
+              <th>状態</th>
+              <th>期限</th>
+              <th>更新</th>
+              <th>詳細</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${assigned.map((item) => `
+              <tr class="worker-task-row" tabindex="0" data-open-detail="${escapeHtml(item.id)}">
+                <td>${escapeHtml(item.title)}</td>
+                <td>${escapeHtml(item.category || "未設定")}</td>
+                <td>${escapeHtml(item.priority || "")}</td>
+                <td>${escapeHtml(toHistoryStatus(item.status))}</td>
+                <td>${escapeHtml(item.dueDate || "")}</td>
+                <td>${escapeHtml(formatDateTime(item.updatedAt))}</td>
+                <td><button type="button" class="detail-trigger" data-open-detail="${escapeHtml(item.id)}">詳細</button></td>
+              </tr>
+            `).join("")}
+          </tbody>
+        </table>
+      `;
+    }
+
+    function handleWorkerTaskListClick(event) {
+      const detailTarget = event.target.closest("[data-open-detail]");
+      if (!detailTarget) {
+        return;
+      }
+      openDetailModalById(detailTarget.dataset.openDetail);
+    }
+
+    function renderAssistPanels() {
+      const rows = buildWorkloadRows();
+      const focusRows = rows.filter((row) => row.level !== "low");
+      const spareRows = rows.filter((row) => row.level === "low");
+
+      focusList.innerHTML = focusRows.length
+        ? focusRows.map((row) => `<li>${escapeHtml(row.assignee)}: 使用率 ${Math.round(row.utilization * 100)}%</li>`).join("")
+        : "<li>現在、集中している担当者はいません。</li>";
+
+      supportList.innerHTML = focusRows.length
+        ? focusRows.map((target) => {
+            const targetCategories = getWorkerSupportCategories(target.assignee);
+            const helpers = spareRows
+              .filter((row) => row.assignee !== target.assignee)
+              .filter((row) => canSupportWorkerCategories(row.assignee, targetCategories))
+              .sort((left, right) => left.utilization - right.utilization || left.assignee.localeCompare(right.assignee, "ja"))
+              .slice(0, 2)
+              .map((row) => `${row.assignee} (${Math.round(row.utilization * 100)}%)`)
+              .join(" / ");
+            const categoryText = targetCategories.length ? `対象カテゴリ: ${targetCategories.join(" / ")}` : "カテゴリ設定なし";
+            const helperText = helpers || "候補なし（同カテゴリで余力のある担当者なし）";
+            return `<li>${escapeHtml(target.assignee)} の支援候補: ${escapeHtml(helperText)}<br>${escapeHtml(categoryText)}</li>`;
+          }).join("")
+        : "<li>フォロー提案はありません。</li>";
+    }
+
+    function getWorkerSupportCategories(workerName) {
+      const normalizedName = String(workerName || "").trim();
+      if (!normalizedName) {
+        return [];
+      }
+
+      const activeTaskCategories = state.inquiries
+        .map((item) => normalizeInquiry(item))
+        .filter((item) => item.worker === normalizedName && item.status !== "完了")
+        .map((item) => String(item.category || "").trim())
+        .filter(Boolean);
+
+      if (activeTaskCategories.length) {
+        return Array.from(new Set(activeTaskCategories)).sort((left, right) => left.localeCompare(right, "ja"));
+      }
+
+      return getMasterAssigneeCategories(normalizedName);
+    }
+
+    function canSupportWorkerCategories(workerName, targetCategories) {
+      const categories = Array.isArray(targetCategories) ? targetCategories.filter(Boolean) : [];
+      if (!categories.length) {
+        return false;
+      }
+
+      const workerCategories = getMasterAssigneeCategories(workerName);
+      return workerCategories.some((category) => categories.includes(category));
+    }
+
+    function renderFollowupInsights() {
+      const normalized = state.inquiries
+        .map((item) => normalizeInquiry(item))
+        .filter((item) => item.status !== "完了");
+
+      const oldestReception = normalized
+        .filter((item) => toHistoryStatus(item.status) === "受付")
+        .sort((left, right) => new Date(left.createdAt).getTime() - new Date(right.createdAt).getTime())
+        .slice(0, 2);
+
+      const now = Date.now();
+      const dueSoon = normalized
+        .filter((item) => {
+          if (!item.dueDate) {
+            return false;
+          }
+          const due = new Date(`${item.dueDate}T23:59:59`).getTime();
+          if (!Number.isFinite(due)) {
+            return false;
+          }
+          const diffDays = Math.floor((due - now) / (24 * 60 * 60 * 1000));
+          return diffDays <= 2;
+        })
+        .sort((left, right) => new Date(left.dueDate).getTime() - new Date(right.dueDate).getTime())
+        .slice(0, 2);
+
+      const selected = [];
+      const seen = new Set();
+      [...oldestReception, ...dueSoon].forEach((item) => {
+        if (!item?.id || seen.has(item.id)) {
+          return;
+        }
+        seen.add(item.id);
+        selected.push(item);
+      });
+
+      if (!selected.length) {
+        insightList.innerHTML = "<li>注視案件はありません。現在の割り当てで安定しています。</li>";
+        return;
+      }
+
+      insightList.innerHTML = selected.map((item) => {
+        const workerText = item.worker || "未選択";
+        const dueText = item.dueDate || "期限未設定";
+        return `<li role="button" tabindex="0" data-open-detail="${escapeHtml(item.id)}">${escapeHtml(item.title)}（状態: ${escapeHtml(toHistoryStatus(item.status))} / 実作業者: ${escapeHtml(workerText)} / 期限: ${escapeHtml(dueText)}）</li>`;
+      }).join("");
+    }
+
+    function handleInsightListClick(event) {
+      const item = event.target.closest("[data-open-detail]");
+      if (!item) {
+        return;
+      }
+      openDetailModalById(item.dataset.openDetail);
+    }
+
+    function handleInsightListKeydown(event) {
+      if (event.key !== "Enter" && event.key !== " ") {
+        return;
+      }
+
+      const item = event.target.closest("[data-open-detail]");
+      if (!item) {
+        return;
+      }
+
+      event.preventDefault();
+      openDetailModalById(item.dataset.openDetail);
+    }
+
+    function handleUnassignedAlertClick(event) {
+      const item = event.target.closest("[data-open-detail]");
+      if (!item) {
+        return;
+      }
+      openDetailModalById(item.dataset.openDetail);
+    }
+
+    function handleUnassignedAlertKeydown(event) {
+      if (event.key !== "Enter" && event.key !== " ") {
+        return;
+      }
+
+      const item = event.target.closest("[data-open-detail]");
+      if (!item) {
+        return;
+      }
+
+      event.preventDefault();
+      openDetailModalById(item.dataset.openDetail);
+    }
+
+    function handleOverdueAlertClick(event) {
+      const item = event.target.closest("[data-open-detail]");
+      if (!item) {
+        return;
+      }
+      openDetailModalById(item.dataset.openDetail);
+    }
+
+    function handleOverdueAlertKeydown(event) {
+      if (event.key !== "Enter" && event.key !== " ") {
+        return;
+      }
+
+      const item = event.target.closest("[data-open-detail]");
+      if (!item) {
+        return;
+      }
+
+      event.preventDefault();
+      openDetailModalById(item.dataset.openDetail);
+    }
+
+    function renderHistoryTable() {
+      const rows = getFilteredAndSortedInquiries();
+      if (!rows.length) {
+        historyTableBody.innerHTML = '<tr><td colspan="7"><div class="empty">一致する案件はありません。</div></td></tr>';
+        return;
+      }
+
+      historyTableBody.innerHTML = rows.map((item) => {
+        ensureInquiryAssignees(item);
+        const categoryText = String(item.category || "未設定");
+        const categoryClass = getCategoryTagClass(categoryText);
+        const isNewArrival = isNewInquiry(item);
+        return `
+          <tr class="${isNewArrival ? "new-row" : ""}">
+            <td>
+              <div class="task-head">
+                <strong>${escapeHtml(item.title)}</strong>
+                <span class="task-tag ${escapeHtml(categoryClass)}">${escapeHtml(categoryText)}</span>
+                ${isNewArrival ? '<span class="new-chip">新着</span>' : ''}
+              </div>
+              <div class="kpi-note">${escapeHtml(item.id)} / 受付 ${escapeHtml(formatDateTime(item.createdAt))} / 更新 ${escapeHtml(formatDateTime(item.updatedAt))}</div>
+            </td>
+            <td>${escapeHtml(item.priority)}</td>
+            <td>
+              <ul class="assignee-list">
+                ${buildAssigneeSummary(item.assignedMembers)}
+              </ul>
+            </td>
+            <td>
+              <select name="historyWorker" data-inquiry-id="${escapeHtml(item.id)}">
+                ${buildWorkerOptions(item.worker)}
+              </select>
+            </td>
+            <td>
+              <select name="historyStatus" data-inquiry-id="${escapeHtml(item.id)}">
+                ${buildStatusOptions(toHistoryStatus(item.status))}
+              </select>
+            </td>
+            <td>
+              <button class="detail-trigger" type="button" data-open-detail="${escapeHtml(item.id)}">詳細</button>
+            </td>
+            <td>
+              <button class="row-save-btn" type="button" data-save-row="${escapeHtml(item.id)}">保存</button>
+            </td>
+          </tr>
+        `;
+      }).join("");
+    }
+
+    function handleHistoryTableClick(event) {
+      const saveButton = event.target.closest("[data-save-row]");
+      if (saveButton) {
+        handleRowSave(saveButton.dataset.saveRow);
+        return;
+      }
+
+      const detailButton = event.target.closest("[data-open-detail]");
+      if (detailButton) {
+        openDetailModalById(detailButton.dataset.openDetail);
+        return;
+      }
+
+      const row = event.target.closest("tr");
+      if (!row || event.target.closest("button, select, option")) {
+        return;
+      }
+    }
+
+    function openDetailModalById(inquiryId) {
+      const inquiry = state.inquiries.find((item) => item.id === inquiryId);
+      if (!inquiry) {
+        return;
+      }
+      activeDetailInquiryId = inquiryId;
+      renderDetailModal(inquiry);
+      detailModal.classList.add("open");
+    }
+
+    function closeDetailModal() {
+      detailModal.classList.remove("open");
+      activeDetailInquiryId = "";
+    }
+
+    function handleDetailModalBackdropClick(event) {
+      if (event.target === detailModal) {
+        closeDetailModal();
+      }
+    }
+
+    function renderDetailModal(inquiry) {
+      ensureInquiryAssignees(inquiry);
+      const rows = [
+        ["件名", inquiry.title || ""],
+        ["ID", inquiry.id || ""],
+        ["カテゴリ", inquiry.category || "未設定"],
+        ["緊急度", inquiry.priority || ""],
+        ["状態", toHistoryStatus(inquiry.status)],
+        ["実作業者", inquiry.worker || "(未選択)"],
+        ["割り当て", (inquiry.assignedMembers || []).join(" / ") || "該当担当者なし"],
+        ["期限", inquiry.dueDate || ""],
+        ["更新", formatDateTime(inquiry.updatedAt)],
+        ["負荷ポイント", String(inquiry.loadPoint || "")]
+      ];
+      detailMetaGrid.innerHTML = rows.map(([label, value]) => `
+        <div class="detail-item">
+          <div class="detail-label">${escapeHtml(label)}</div>
+          <div class="detail-value">${escapeHtml(value)}</div>
+        </div>
+      `).join("");
+
+      detailEditWorker.innerHTML = buildWorkerOptions(inquiry.worker);
+      detailEditStatus.innerHTML = buildStatusOptions(toHistoryStatus(inquiry.status));
+      detailText.textContent = inquiry.details || "(詳細なし)";
+      renderAttachmentList(inquiry);
+    }
+
+    function handleDetailSave() {
+      if (!activeDetailInquiryId) {
+        return;
+      }
+
+      const inquiry = state.inquiries.find((item) => item.id === activeDetailInquiryId);
+      if (!inquiry) {
+        return;
+      }
+
+      const changed = applyInquiryUpdate(
+        inquiry,
+        detailEditWorker.value,
+        fromHistoryStatus(detailEditStatus.value),
+        "詳細画面から内容を保存"
+      );
+      if (!changed) {
+        return;
+      }
+
+      render();
+      const updated = state.inquiries.find((item) => item.id === activeDetailInquiryId);
+      if (updated) {
+        renderDetailModal(updated);
+      }
+      if (workerTaskModal.classList.contains("open") && activeWorkerName) {
+        renderWorkerTaskModal(activeWorkerName);
+      }
+    }
+
+    function renderAttachmentList(inquiry) {
+      const attachments = Array.isArray(inquiry.attachments) ? inquiry.attachments : [];
+      if (!attachments.length) {
+        detailAttachmentList.innerHTML = '<div class="empty">添付ファイルはありません。</div>';
+        return;
+      }
+
+      detailAttachmentList.innerHTML = attachments.map((file, index) => {
+        const canAccess = Boolean(file?.dataUrl);
+        return `
+          <div class="attachment-item">
+            <div><strong>${escapeHtml(file?.name || "(名称未設定)")}</strong></div>
+            <div class="attachment-meta">${escapeHtml(file?.type || "application/octet-stream")} / ${escapeHtml(formatFileSize(Number(file?.size) || 0))}</div>
+            <div class="attachment-actions">
+              <button type="button" class="attachment-btn" data-attachment-action="view" data-attachment-index="${index}" ${canAccess ? "" : "disabled"}>閲覧</button>
+              <button type="button" class="attachment-btn" data-attachment-action="download" data-attachment-index="${index}" ${canAccess ? "" : "disabled"}>ダウンロード</button>
+            </div>
+          </div>
+        `;
+      }).join("");
+    }
+
+    function handleAttachmentActionClick(event) {
+      const button = event.target.closest("[data-attachment-action]");
+      if (!button || !activeDetailInquiryId) {
+        return;
+      }
+
+      const inquiry = state.inquiries.find((item) => item.id === activeDetailInquiryId);
+      if (!inquiry) {
+        return;
+      }
+
+      const attachments = Array.isArray(inquiry.attachments) ? inquiry.attachments : [];
+      const index = Number(button.dataset.attachmentIndex);
+      if (!Number.isInteger(index) || index < 0 || index >= attachments.length) {
+        return;
+      }
+
+      const file = attachments[index];
+      if (!file?.dataUrl) {
+        alert("この添付ファイルは保存データがないため閲覧・ダウンロードできません。新規に添付されたファイルから利用できます。");
+        return;
+      }
+
+      if (button.dataset.attachmentAction === "view") {
+        window.open(file.dataUrl, "_blank", "noopener");
+        return;
+      }
+
+      triggerAttachmentDownload(file);
+    }
+
+    function triggerAttachmentDownload(file) {
+      const link = document.createElement("a");
+      link.href = file.dataUrl;
+      link.download = file.name || "attachment";
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+    }
+
+    function handleRowSave(inquiryId) {
+      if (!inquiryId) {
+        return;
+      }
+
+      const inquiry = state.inquiries.find((item) => item.id === inquiryId);
+      if (!inquiry) {
+        return;
+      }
+
+      ensureInquiryAssignees(inquiry);
+
+      const workerSelect = historyTableBody.querySelector(`select[name="historyWorker"][data-inquiry-id="${CSS.escape(inquiryId)}"]`);
+      const statusSelect = historyTableBody.querySelector(`select[name="historyStatus"][data-inquiry-id="${CSS.escape(inquiryId)}"]`);
+      if (!workerSelect || !statusSelect) {
+        return;
+      }
+
+      const nextWorker = workerSelect.value;
+      const nextStatus = fromHistoryStatus(statusSelect.value);
+      const changed = applyInquiryUpdate(inquiry, nextWorker, nextStatus, "案件一覧から内容を保存");
+      if (changed) {
+        render();
+      }
+    }
+
+    function applyInquiryUpdate(inquiry, nextWorker, nextStatus, summary) {
+      const changed = inquiry.worker !== nextWorker || inquiry.status !== nextStatus;
+      inquiry.worker = nextWorker;
+      inquiry.status = nextStatus;
+
+      if (!changed) {
+        return false;
+      }
+
+      const effectiveMembers = resolveAssignedMembersByCategory(inquiry);
+      inquiry.updatedAt = new Date().toISOString();
+      state.history.unshift({
+        id: crypto.randomUUID(),
+        inquiryId: inquiry.id,
+        type: "updated",
+        timestamp: new Date().toISOString(),
+        summary,
+        detail: `実作業者: ${nextWorker || "(未選択)"} / 状態: ${toHistoryStatus(inquiry.status)} / 割り当て: ${effectiveMembers.join(", ")}`
+      });
+      saveState();
+      return true;
+    }
+
+    function getFilteredInquiries() {
+      const personal = viewMode.value === "personal";
+      const selected = personSelect.value;
+      const nameKeyword = surnameSearch.value.trim().toLowerCase();
+      const selectedCategory = categoryFilter.value;
+
+      return state.inquiries
+        .map((item) => normalizeInquiry(item))
+        .filter((item) => {
+          const categoryMatch = selectedCategory === "all" || item.category === selectedCategory;
+          if (!categoryMatch) {
+            return false;
+          }
+
+          if (!personal) {
+            return true;
+          }
+
+          const names = [...item.assignedMembers, item.assignee].filter(Boolean);
+          const selectedMatch = selected === "all" || names.includes(selected);
+          const keywordMatch = !nameKeyword || names.some((name) => name.toLowerCase().includes(nameKeyword));
+          return selectedMatch && keywordMatch && categoryMatch;
+        })
+        .sort((left, right) => new Date(right.updatedAt).getTime() - new Date(left.updatedAt).getTime());
+    }
+
+    function getCategoryTagClass(category) {
+      const value = String(category || "").trim();
+      if (value === "部品") {
+        return "task-tag-buhin";
+      }
+      if (value === "GMS") {
+        return "task-tag-gms";
+      }
+      if (value === "品質向上業務") {
+        return "task-tag-quality";
+      }
+      if (value === "機械トラブル（圧入機）") {
+        return "task-tag-press";
+      }
+      if (value === "機械トラブル（地下製品）") {
+        return "task-tag-underground";
+      }
+      if (value === "後方支援システム") {
+        return "task-tag-backoffice";
+      }
+      if (value === "Salesforce") {
+        return "task-tag-salesforce";
+      }
+      if (value === "個人タスク") {
+        return "task-tag-personal";
+      }
+      return "task-tag-other";
+    }
+
+    function getFilteredAndSortedInquiries() {
+      const filtered = getFilteredInquiries();
+      const key = sortKey.value;
+      const order = sortOrder.value;
+      const priorityOrder = { "高": 3, "中": 2, "低": 1 };
+      const statusOrder = { "受付": 1, "対応中": 2, "保留": 3, "完了": 4 };
+
+      const sorted = [...filtered].sort((a, b) => {
+        let aValue, bValue;
+
+        if (key === "priority") {
+          aValue = priorityOrder[a.priority] || 0;
+          bValue = priorityOrder[b.priority] || 0;
+        } else if (key === "createdAt") {
+          aValue = new Date(a.createdAt).getTime();
+          bValue = new Date(b.createdAt).getTime();
+        } else if (key === "status") {
+          aValue = statusOrder[toHistoryStatus(a.status)] || 0;
+          bValue = statusOrder[toHistoryStatus(b.status)] || 0;
+        }
+
+        if (order === "asc") {
+          return aValue - bValue;
+        } else {
+          return bValue - aValue;
+        }
+      });
+
+      return sorted;
+    }
+
+    function isNewInquiry(item) {
+      if (!item?.createdAt) {
+        return false;
+      }
+      const createdAt = new Date(item.createdAt).getTime();
+      if (!Number.isFinite(createdAt)) {
+        return false;
+      }
+      const NEW_WINDOW_MS = 24 * 60 * 60 * 1000;
+      return Date.now() - createdAt <= NEW_WINDOW_MS;
+    }
+
+    function isUnassignedInquiry(item) {
+      const worker = String(item?.worker || "").trim();
+      return !worker;
+    }
+
+    function isOverdueInquiry(item) {
+      if (toHistoryStatus(item?.status) === "完了") {
+        return false;
+      }
+
+      const dueDate = String(item?.dueDate || "").trim();
+      if (!dueDate) {
+        return false;
+      }
+
+      const dueAt = new Date(`${dueDate}T23:59:59`).getTime();
+      if (!Number.isFinite(dueAt)) {
+        return false;
+      }
+
+      return dueAt < Date.now();
+    }
+
+    function buildWorkloadRows() {
+      const capacityLimits = buildCapacityLimits(getCurrentMasterAssignees());
+      return getWorkers().map((worker) => {
+        const active = state.inquiries.filter((item) => item.worker === worker && item.status !== "完了");
+        const count = active.length;
+        const load = active.reduce((sum, item) => sum + item.loadPoint, 0);
+        const limit = capacityLimits[worker] || { maxLoad: 10, maxTasks: 4 };
+        const use = Math.max(count / Math.max(1, limit.maxTasks), load / Math.max(1, limit.maxLoad));
+        return {
+          assignee: worker,
+          count,
+          load,
+          maxTasks: limit.maxTasks,
+          maxLoad: limit.maxLoad,
+          utilization: use,
+          level: use >= 1 ? "high" : use >= 0.75 ? "medium" : "low",
+          label: use >= 1 ? "集中" : use >= 0.75 ? "やや集中" : "余力有"
+        };
+      }).sort((left, right) => right.utilization - left.utilization || right.load - left.load || left.assignee.localeCompare(right.assignee, "ja"));
+    }
+
+    function getWorkers() {
+      const currentMasterAssignees = getCurrentMasterAssignees();
+      if (currentMasterAssignees.length) {
+        return currentMasterAssignees
+          .filter((item) => item.active)
+          .map((item) => item.name)
+          .sort((left, right) => left.localeCompare(right, "ja"));
+      }
+
+      const values = new Set(getDefaultAssignees(currentMasterAssignees));
+      state.inquiries.forEach((item) => {
+        if (item.worker) {
+          values.add(item.worker);
+        }
+      });
+      return Array.from(values).sort((left, right) => left.localeCompare(right, "ja"));
+    }
+
+    function getAssignees() {
+      const values = new Set(getDefaultAssignees(getCurrentMasterAssignees()));
+      state.inquiries.forEach((item) => {
+        if (item.assignee) {
+          values.add(item.assignee);
+        }
+        if (Array.isArray(item.assignedMembers)) {
+          item.assignedMembers.forEach((name) => values.add(name));
+        }
+      });
+      return Array.from(values).sort((left, right) => left.localeCompare(right, "ja"));
+    }
+
+    function normalizeInquiry(item) {
+      const normalized = { ...item };
+      ensureInquiryAssignees(normalized);
+      return normalized;
+    }
+
+    function ensureInquiryAssignees(item) {
+      item.assignedMembers = resolveAssignedMembersByCategory(item);
+      if (shouldKeepUnassigned(item.category) && !item.assignedMembers.length) {
+        item.assignee = "";
+        return item;
+      }
+      if (!item.assignee || !item.assignedMembers.includes(item.assignee)) {
+        item.assignee = item.assignedMembers[0] || item.assignee || "";
+      }
+      return item;
+    }
+
+    function resolveAssignedMembersByCategory(item) {
+      const categoryMembers = getMasterCategoryAssignees(item.category);
+      if (categoryMembers.length) {
+        return categoryMembers;
+      }
+      if (shouldKeepUnassigned(item.category)) {
+        return [];
+      }
+      if (Array.isArray(item.assignedMembers) && item.assignedMembers.length) {
+        return [...new Set(item.assignedMembers)].sort((left, right) => left.localeCompare(right, "ja"));
+      }
+      return item.assignee ? [item.assignee] : [];
+    }
+
+    function shouldKeepUnassigned(category) {
+      return String(category || "").trim() === "その他";
+    }
+
+    function buildAssigneeSummary(selectedMembers) {
+      const members = Array.from(new Set((selectedMembers || []).filter(Boolean)))
+        .sort((left, right) => left.localeCompare(right, "ja"));
+      if (!members.length) {
+        return "<li>該当担当者なし</li>";
+      }
+      const visible = members.slice(0, 2)
+        .map((name) => `<li>${escapeHtml(name)}</li>`)
+        .join("");
+      const remain = members.length - 2;
+      const more = remain > 0 ? `<li class="assignee-more">他 ${remain}人</li>` : "";
+      return `${visible}${more}`;
+    }
+
+    function buildWorkerOptions(currentWorker) {
+      const allMembers = Array.from(new Set([...getDefaultAssignees(getCurrentMasterAssignees()), currentWorker].filter(Boolean)))
+        .sort((left, right) => left.localeCompare(right, "ja"));
+      return `<option value="">-- 選択してください --</option>` +
+        allMembers.map((name) => `
+        <option value="${name}" ${name === currentWorker ? "selected" : ""}>${name}</option>
+      `).join("");
+    }
+
+    function buildStatusOptions(currentStatus) {
+      return ["未着手", "対応中", "完了"].map((status) => `
+        <option value="${status}" ${status === currentStatus ? "selected" : ""}>${status}</option>
+      `).join("");
+    }
+
+    function toHistoryStatus(status) {
+      if (status === "完了") {
+        return "完了";
+      }
+      if (status === "対応中") {
+        return "対応中";
+      }
+      return "未着手";
+    }
+
+    function fromHistoryStatus(status) {
+      if (status === "完了") {
+        return "完了";
+      }
+      if (status === "対応中") {
+        return "対応中";
+      }
+      return "受付";
+    }
+
+    function loadState() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (!raw) {
+          return deepClone(seedData);
+        }
+        const parsed = JSON.parse(raw);
+        const inquiries = Array.isArray(parsed.inquiries) && parsed.inquiries.length ? parsed.inquiries : deepClone(seedData.inquiries);
+        return {
+          inquiries,
+          history: Array.isArray(parsed.history) ? parsed.history : []
+        };
+      } catch (error) {
+        return deepClone(seedData);
+      }
+    }
+
+    function ensureDemoOverdueInquiry(currentState) {
+      if (!currentState || !Array.isArray(currentState.inquiries)) {
+        return;
+      }
+
+      const exists = currentState.inquiries.some((item) => item?.id === DEMO_OVERDUE_INQUIRY_ID);
+      if (exists) {
+        return;
+      }
+
+      const createdAt = new Date(Date.now() - 4 * 24 * 60 * 60 * 1000).toISOString();
+      const updatedAt = new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString();
+      currentState.inquiries.unshift({
+        id: DEMO_OVERDUE_INQUIRY_ID,
+        title: "【テスト】期限超過アラート確認用案件",
+        requester: "<ユーザー名>",
+        department: "PS課",
+        category: "その他",
+        priority: "高",
+        assignee: "",
+        assignedMembers: [],
+        worker: "",
+        dueDate: overdueDate(2),
+        loadPoint: 3,
+        progress: 0,
+        status: "受付",
+        details: "期限超過アラートの見え方確認用に追加したテスト案件です。不要になったら削除できます。",
+        createdAt,
+        updatedAt
+      });
+
+      if (Array.isArray(currentState.history)) {
+        currentState.history.unshift({
+          id: crypto.randomUUID(),
+          inquiryId: DEMO_OVERDUE_INQUIRY_ID,
+          type: "created",
+          timestamp: createdAt,
+          summary: "テスト用の期限超過案件を追加",
+          detail: "期限超過アラートの表示確認用"
+        });
+      }
+    }
+
+    function loadMasterAssignees() {
+      try {
+        const raw = localStorage.getItem(MASTER_KEY);
+        if (!raw) {
+          return deepClone(DEFAULT_MASTER_ASSIGNEES);
+        }
+        const parsed = JSON.parse(raw);
+        if (!Array.isArray(parsed?.assignees)) {
+          return deepClone(DEFAULT_MASTER_ASSIGNEES);
+        }
+        return parsed.assignees
+          .map((item) => {
+            const name = String(item?.name || "").trim();
+            const maxLoad = Number(item?.maxLoad);
+            if (!name || !Number.isFinite(maxLoad)) {
+              return null;
+            }
+            const categories = Array.isArray(item?.categories)
+              ? item.categories.map((cat) => String(cat || "").trim()).filter(Boolean)
+              : [];
+            const personalFactor = Number.isFinite(Number(item?.personalFactor)) ? Number(item.personalFactor) : 1.0;
+            return {
+              name,
+              maxLoad: Math.max(1, Math.round(maxLoad)),
+              personalFactor,
+              active: item?.active !== false,
+              categories
+            };
+          })
+          .filter(Boolean);
+      } catch (error) {
+        return deepClone(DEFAULT_MASTER_ASSIGNEES);
+      }
+    }
+
+    function getCurrentMasterAssignees() {
+      return loadMasterAssignees();
+    }
+
+    function getMasterCategoryAssignees(category) {
+      const targetCategory = String(category || "").trim();
+      if (!targetCategory) {
+        return [];
+      }
+      return getCurrentMasterAssignees()
+        .filter((item) => item.active && Array.isArray(item.categories) && item.categories.includes(targetCategory))
+        .map((item) => item.name)
+        .sort((left, right) => left.localeCompare(right, "ja"));
+    }
+
+    function getMasterAssigneeCategories(name) {
+      const targetName = String(name || "").trim();
+      if (!targetName) {
+        return [];
+      }
+
+      const assignee = getCurrentMasterAssignees().find((item) => item.name === targetName && item.active);
+      if (!assignee || !Array.isArray(assignee.categories)) {
+        return [];
+      }
+
+      return assignee.categories
+        .map((category) => String(category || "").trim())
+        .filter(Boolean)
+        .sort((left, right) => left.localeCompare(right, "ja"));
+    }
+
+    function buildCapacityLimits(assignees) {
+      const limits = deepClone(DEFAULT_CAPACITY_LIMITS);
+      assignees.forEach((item) => {
+          const defaultLimit = DEFAULT_CAPACITY_LIMITS[item.name];
+          const capacityPoints = Math.max(1, Math.round((Number.isFinite(Number(item.personalFactor)) ? Number(item.personalFactor) : 1.0) * BASE_POINTS));
+          limits[item.name] = {
+            // maxLoad をポイント制の容量に差し替え
+            maxLoad: capacityPoints,
+            maxTasks: defaultLimit ? defaultLimit.maxTasks : Math.max(3, Math.ceil(item.maxLoad / 3))
+          };
+      });
+      return limits;
+    }
+
+    function getDefaultAssignees(assignees) {
+      if (!assignees.length) {
+        return Object.keys(DEFAULT_CAPACITY_LIMITS);
+      }
+      const active = assignees
+        .filter((item) => item.active)
+        .map((item) => item.name)
+        .sort((left, right) => left.localeCompare(right, "ja"));
+      return active.length ? active : Object.keys(DEFAULT_CAPACITY_LIMITS);
+    }
+
+    function deepClone(value) {
+      return JSON.parse(JSON.stringify(value));
+    }
+
+    function saveState() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      scheduleSharedStateSync();
+
+      // non-blocking persist to IndexedDB and notify other pages
+      (async () => {
+        try {
+          await db.transaction('rw', db.inquiries, db.history, async () => {
+            await db.inquiries.clear();
+            if (Array.isArray(state.inquiries) && state.inquiries.length) {
+              await db.inquiries.bulkPut(state.inquiries);
+            }
+            await db.history.clear();
+            if (Array.isArray(state.history) && state.history.length) {
+              await db.history.bulkPut(state.history);
+            }
+          });
+          try { bc.postMessage({ type: 'state-updated' }); } catch (e) {}
+        } catch (e) {
+          // ignore DB write errors
+        }
+      })();
+    }
+
+    function scheduleSharedStateSync() {
+      if (sharedSyncTimerId) {
+        window.clearTimeout(sharedSyncTimerId);
+      }
+      sharedSyncTimerId = window.setTimeout(() => {
+        sharedSyncTimerId = 0;
+        syncStateToSharedStore();
+      }, 300);
+    }
+
+    async function syncStateToSharedStore() {
+      try {
+        await fetch(SHARED_STATE_API_URL, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ inquiries: state.inquiries, history: state.history })
+        });
+      } catch (error) {
+        // Shared API is optional. Keep local-only behavior when unreachable.
+      }
+    }
+
+    async function syncStateFromSharedStore() {
+      try {
+        const response = await fetch(SHARED_STATE_API_URL, { method: "GET", cache: "no-store" });
+        if (!response.ok) {
+          return;
+        }
+        const remoteState = await response.json();
+        if (!Array.isArray(remoteState?.inquiries) || !remoteState.inquiries.length) {
+          return;
+        }
+
+        state.inquiries = remoteState.inquiries;
+        state.history = Array.isArray(remoteState?.history) ? remoteState.history : [];
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+        render();
+      } catch (error) {
+        // Shared API is optional. Keep local-only behavior when unreachable.
+      }
+    }
+
+    // Load from local IndexedDB if present
+    async function syncFromDB() {
+      try {
+        const inquiries = await db.inquiries.orderBy('createdAt').reverse().toArray();
+        const history = await db.history.orderBy('timestamp').reverse().toArray();
+        if (Array.isArray(inquiries) && inquiries.length) {
+          state.inquiries = inquiries;
+          state.history = Array.isArray(history) ? history : [];
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+        }
+      } catch (e) {
+        // ignore DB errors
+      }
+    }
+
+    // OneDrive 等に置かれた JSON を定期取得して state に反映する（サーバ不要：簡易同期）
+    async function fetchSharedJsonAndUpdate() {
+      if (!SHARED_JSON_URL) return;
+      try {
+        const resp = await fetch(SHARED_JSON_URL, { cache: "no-store" });
+        if (!resp.ok) return;
+        const remote = await resp.json();
+        if (!remote) return;
+        if (Array.isArray(remote?.inquiries) && remote.inquiries.length) {
+          state.inquiries = remote.inquiries;
+          state.history = Array.isArray(remote.history) ? remote.history : state.history;
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+          render();
+        }
+      } catch (e) {
+        // 取得失敗は無視（オフライン・認証切れ等）
+      }
+    }
+
+    // react to notifications from other pages
+    bc.addEventListener('message', async (ev) => {
+      try {
+        if (!ev?.data) return;
+        if (ev.data.type === 'inquiry-added' || ev.data.type === 'state-updated') {
+          await syncFromDB();
+          render();
+        }
+      } catch (e) {}
+    });
+
+    function exportCsv() {
+      try {
+        const rows = Array.isArray(state.inquiries) ? state.inquiries.slice().reverse() : [];
+        if (!rows.length) {
+          alert('出力するデータがありません。');
+          return;
+        }
+        const columns = ['id','title','requester','department','email','category','priority','requestedDate','assignee','worker','dueDate','loadPoint','progress','status','createdAt','updatedAt'];
+        const csv = [columns.join(',')].concat(rows.map((r) => columns.map((c) => {
+          const v = r[c];
+          if (v === null || v === undefined) return '';
+          return String(v).replaceAll('"','""');
+        }).map((cell) => `"${cell}"`).join(',')) ).join('\n');
+
+        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `ps_inquiries_${new Date().toISOString().slice(0,10)}.csv`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(url);
+      } catch (e) {
+        alert('CSV出力中にエラーが発生しました。');
+      }
+    }
+
+    function recentDateTime(hoursAgo) {
+      return new Date(Date.now() - hoursAgo * 60 * 60 * 1000).toISOString();
+    }
+
+    function overdueDate(daysAgo) {
+      const value = new Date();
+      value.setDate(value.getDate() - daysAgo);
+      return value.toISOString().split("T")[0];
+    }
+
+    function upcomingDate(daysAhead) {
+      const value = new Date();
+      value.setDate(value.getDate() + daysAhead);
+      return value.toISOString().split("T")[0];
+    }
+
+    function formatDateTime(dateValue) {
+      if (!dateValue) return "";
+      const d = new Date(dateValue);
+      if (Number.isNaN(d.getTime())) return "";
+      return new Intl.DateTimeFormat("ja-JP", {
+        month: "numeric",
+        day: "numeric",
+        hour: "2-digit",
+        minute: "2-digit"
+      }).format(d);
+    }
+
+    function formatFileSize(size) {
+      if (size < 1024) {
+        return `${size} B`;
+      }
+      if (size < 1024 * 1024) {
+        return `${Math.round(size / 102.4) / 10} KB`;
+      }
+      return `${Math.round(size / 104857.6) / 10} MB`;
+    }
+
+    function escapeHtml(value) {
+      return String(value)
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#39;");
+    }
+  </script>
+  <script>
+    // 自ホスト上の共有JSONファイルを優先的に読み込むローダー
+    (async function loadLocalSharedState() {
+      try {
+        const resp = await fetch('/storage/shared-state.json', { cache: 'no-store' });
+        if (!resp.ok) return;
+        const json = await resp.json();
+        if (!json) return;
+        if (Array.isArray(json.inquiries) && json.inquiries.length) {
+          state.inquiries = json.inquiries;
+          state.history = Array.isArray(json.history) ? json.history : state.history;
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+          render();
+          console.info('Loaded /storage/shared-state.json into task dashboard');
+        }
+      } catch (e) {
+        // フェッチ失敗は無害（サーバ未起動など）。何もしない。
+      }
+    })();
+  </script>
+</body>
+</html>
